@@ -59,5 +59,49 @@ function locateCell(coords::Vector{wpFloat},
     return low 
 end # function locateCell
 
+
+function trilinear(mesh   ::Mesh, 
+                   (i,j,k)::wpInt,
+                   (x,y,z)::wpFloat
+                   )
+
+    t = (x - mesh.xCoords[i])/(mesh.xCoords[i + 1] - mesh.xCoords[i])
+    u = (y - mesh.yCoords[j])/(mesh.yCoords[j + 1] - mesh.yCoords[j])
+    v = (z - mesh.zCoords[k])/(mesh.zCoords[k + 1] - mesh.zCoords[k])
+
+    B0 = mesh.bField[:,   i,   j,   k]
+    B1 = mesh.bField[:, i+1,   j,   k]
+    B2 = mesh.bField[:, i+1, j+1,   k]
+    B3 = mesh.bField[:,   i, j+1,   k]
+    B4 = mesh.bField[:,   i,   j, k+1]
+    B5 = mesh.bField[:, i+1,   j, k+1]
+    B6 = mesh.bField[:, i+1, j+1, k+1]
+    B7 = mesh.bField[:,   i, j+1, k+1]
+
+    E0 = mesh.bField[:,   i,   j,   k]
+    E1 = mesh.bField[:, i+1,   j,   k]
+    E2 = mesh.bField[:, i+1, j+1,   k]
+    E3 = mesh.bField[:,   i, j+1,   k]
+    E4 = mesh.bField[:,   i,   j, k+1]
+    E5 = mesh.bField[:, i+1,   j, k+1]
+    E6 = mesh.bField[:, i+1, j+1, k+1]
+    E7 = mesh.bField[:,   i, j+1, k+1]
+
+    f0 = (1 - t)*(1 - u)*(1 - v)
+    f1 = t*(1 - u)*(1 - v)
+    f2 = t*u*(1 - v)
+    f3 = (1 - t)*u*(1 - v)
+    f4 = (1 - t)*(1 - u)*v
+    f5 = t*(1 - u)*v
+    f6 = t*u*v
+    f7 = (1 - t)*u*v
+
+    B = f0*B0 + f1*B1 + f2*B2 + f3*B3 + f4*B4 + f5*B5 + f6*B6 + f7*B7
+    E = f0*E0 + f1*E1 + f2*E2 + f3*E3 + f4*E4 + f5*E5 + f6*E6 + f7*E7
+
+    return B, E
+
+end # function trinlinear
+
     
 end # module Interpolations

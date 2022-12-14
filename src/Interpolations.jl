@@ -3,7 +3,7 @@
 # Created 12.12.22
 # Author: e.s.oyre@astro.uio.no
 #
-# Last edited: 12.12.22
+# Last edited: 13.12.22
 #
 #-------------------------------------------------------------------------------
 #
@@ -18,8 +18,11 @@ module Interpolations
 using WorkingPrecision: wpFloat, wpInt
 using Meshes
 
+export locateCell
+export trilinear
+
 function grid(mesh       ::Mesh,
-              interpolator::Function
+              interpolator::Function,
               pos        ::Vector{wpFloat}
               )
     numDims = 3
@@ -61,8 +64,8 @@ end # function locateCell
 
 
 function trilinear(mesh   ::Mesh, 
-                   (i,j,k)::wpInt,
-                   (x,y,z)::wpFloat
+                   (i,j,k)::Tuple{wpInt, wpInt, wpInt},
+                   (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
                    )
 
     t = (x - mesh.xCoords[i])/(mesh.xCoords[i + 1] - mesh.xCoords[i])

@@ -15,4 +15,5 @@ using TestInterpolations
 
 @testset verbose = true "Interpolations" begin
     testtrilinear(true)
+    testlocateCell(true)
 end

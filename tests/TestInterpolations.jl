@@ -17,14 +17,16 @@ module TestInterpolations
 
 using Test
 
+using WorkingPrecision: wpInt, wpFloat
 using Interpolations
 using Meshes
 
 #export testlocateCell
 export testtrilinear
+export testlocateCell
 
 function testtrilinear(verbose::Bool)
-    @testset verbose=verbose "locateCell" begin
+    @testset verbose=verbose "trilinear" begin
         #
         # Test interpolation of uniform field
         #
@@ -109,4 +111,18 @@ function testtrilinear(verbose::Bool)
         end # over i
     end # testset
 end # function testtrilinear
+
+function testlocateCell(verbose)
+    @testset verbose=verbose "locateCell" begin
+        N = 5
+        coords = collect(LinRange(0, 1, N))
+        dx = 1/(N-1)
+        point = 2/3
+        answer1 = ceil(wpInt, point/dx)
+        answer2 = 1
+        @test locateCell(coords, point) == answer1
+        @test locateCell(coords, dx) == answer2
+    end # testset
+end # function testLocateCell
 end # module TestInterpolations
+

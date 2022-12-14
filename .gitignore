@@ -2,7 +2,12 @@
 #                     .gitignore for ITA-Solar/tp                              #
 #------------------------------------------------------------------------------#
 
-*~      # Emacs backup files
-\#*\#   # Emacs autosave files
-test.jl # Julia test file
-data/   # Data files
+# Emacs backup files
+*~
+# Emacs autosave files
+\#*\#
+#Data files
+data/
+**/data/
+# Julia-testing file
+test.jl

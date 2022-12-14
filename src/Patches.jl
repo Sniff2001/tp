@@ -1,10 +1,9 @@
 #-------------------------------------------------------------------------------
 #
 # Created 02.12.22
-# By Eilif @RoCS UiO.
-# email: e.s.oyre@astro.uio.no
+# Author: e.s.oyre@astro.uio.no
 #
-# Last edited: 07.12.22
+# Last edited: 12.12.22
 #
 #-------------------------------------------------------------------------------
 #
@@ -20,6 +19,7 @@ using WorkingPrecision: wpFloat, wpInt
 using Meshes
 using Particles
 using Solvers
+using Interpolations
 
 #-------------#   
 # Export      # 
@@ -35,6 +35,7 @@ mutable struct Patch
     tp          ::ParticleSoA # The trace particles
     solver      ::Function
     scheme      ::Function
+    interpolator::Function
     dt          ::wpFloat
     numSteps    ::wpInt
     numParticles::wpInt
@@ -48,11 +49,14 @@ function run(patch::Patch)
         for j = 1:patch.numParticles # Over particles
             pos = patch.tp.pos[:, j]
             vel = patch.tp.vel[:, j]
+            bField, eField = Interpolations.grid(patch.mesh,
+                                                 patch.interpolator,
+                                                 pos)
             acc = patch.solver(pos,
                                vel,
                                patch.tp.specie[j],
-                               [1,0,1],
-                               [1,1,1],
+                               bField,
+                               eField,
                                )
             pos, vel = patch.scheme(pos, vel, acc, patch.dt)
             patch.tp.pos[:, j] = pos

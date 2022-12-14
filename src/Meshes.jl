@@ -33,24 +33,37 @@ struct Mesh
 
     # Constructors
     #--------------------------------------------------------------------------
+
     function Mesh(bField ::Array{wpFloat, 2},
-                  eField ::Array{wpFloat, 2})
+                  eField ::Array{wpFloat, 2}
+                  )
         xCoords = LinRange(0,1, size(bField)[2])
         return new(bField, eField, xCoords)
     end # constructor 
 
     function Mesh(bField ::Array{wpFloat, 3},
-                  eField ::Array{wpFloat, 3})
+                  eField ::Array{wpFloat, 3}
+                  )
         xCoords = LinRange(0,1, size(bField)[2])
         yCoords = LinRange(0,1, size(bField)[3])
         return new(bField, eField, xCoords, yCoords)
     end # constructor 
 
     function Mesh(bField ::Array{wpFloat, 4},
-                  eField ::Array{wpFloat, 4})
+                  eField ::Array{wpFloat, 4}
+                  )
         xCoords = LinRange(0,1, size(bField)[2])
         yCoords = LinRange(0,1, size(bField)[3])
         zCoords = LinRange(0,1, size(bField)[4])
+        return new(bField, eField, xCoords, yCoords, zCoords)
+    end # constructor
+
+    function Mesh(bField ::Array{wpFloat, 4},
+                  eField ::Array{wpFloat, 4},
+                  xCoords::Vector{wpFloat},
+                  yCoords::Vector{wpFloat},
+                  zCoords::Vector{wpFloat}
+                  )
         return new(bField, eField, xCoords, yCoords, zCoords)
     end # constructor
 end # Struct

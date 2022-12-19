@@ -19,6 +19,7 @@ using WorkingPrecision: wpFloat, wpInt
 using Meshes
 using Particles
 using Solvers
+using Schemes
 using Interpolations
 
 #-------------#   
@@ -52,13 +53,14 @@ function run(patch::Patch)
             bField, eField = Interpolations.grid(patch.mesh,
                                                  patch.interpolator,
                                                  pos)
-            acc = patch.solver(pos,
-                               vel,
-                               patch.tp.specie[j],
-                               bField,
-                               eField,
-                               )
-            pos, vel = patch.scheme(pos, vel, acc, patch.dt)
+            pos, vel = patch.solver(pos,
+                                    vel,
+                                    patch.tp.specie[j],
+                                    bField,
+                                    eField,
+                                    patch.dt,
+                                    patch.scheme
+                                    )
             patch.tp.pos[:, j] = pos
             patch.tp.vel[:, j] = vel
        end # loop over particles (j)

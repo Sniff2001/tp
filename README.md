@@ -1,6 +1,5 @@
 # tp
-## Embedding trace particles in magnetohydrodynamic environments
-___
+Embedding trace particles in magnetohydrodynamic environments, or any electromagnetic field. Trace particles moves independently and their motion is governed by the Lorentz force.
 
 ### Git commit message manners
 The commit message is mainly for other people, so they should be able to understand it now and six months later. Commit messages cannot be longer than one sentence (line) and should start with a tag identifier (see the end of this section).
@@ -24,6 +23,6 @@ Use following tags for commit messages:
 
 Commit message examples:
 
-"[BUG] Adds missing initialisation to tg array"
-"[FIX] Adds lowercase castig to params"
-"[CLN] Removes unnecessary allocation for dynamic arrays."j
+* "[BUG] Adds missing initialisation to tg array"
+* "[FIX] Adds lowercase castig to params"
+* "[CLN] Removes unnecessary allocation for dynamic arrays."

@@ -1,10 +1,6 @@
 #-------------------------------------------------------------------------------
-#
 # Created 02.12.22
 # Author: e.s.oyre@astro.uio.no
-#
-# Last edited: 12.12.22
-#
 #-------------------------------------------------------------------------------
 #
 #                 Patches.jl
@@ -45,24 +41,24 @@ end
 #---------#
 # Methods #
 #---------#---------------------------------------------------------------------
-function run(patch::Patch)
+function run!(patch::Patch)
     for i = 1:patch.numSteps # Over timesteps
         for j = 1:patch.numParticles # Over particles
-            pos = patch.tp.pos[:, j]
-            vel = patch.tp.vel[:, j]
+            pos = patch.tp.pos[:, j, i]
+            vel = patch.tp.vel[:, j, i]
             bField, eField = Interpolations.grid(patch.mesh,
                                                  patch.interpolator,
                                                  pos)
             pos, vel = patch.solver(pos,
                                     vel,
-                                    patch.tp.specie[j],
+                                    patch.tp.species[j],
                                     bField,
                                     eField,
                                     patch.dt,
                                     patch.scheme
                                     )
-            patch.tp.pos[:, j] = pos
-            patch.tp.vel[:, j] = vel
+            patch.tp.pos[:, j, i+1] = pos
+            patch.tp.vel[:, j, i+1] = vel
        end # loop over particles (j)
     end # loop over timesteps (i)
 end # function: run

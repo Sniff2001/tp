@@ -1,11 +1,6 @@
 #-------------------------------------------------------------------------------
-#
 # Created 05.12.22
-# By Eilif @RoCS UiO.
-# email: e.s.oyre@astro.uio.no
-#
-# Last edited: 07.12.22
-#
+# Author: e.s.oyre@astro.uio.no
 #-------------------------------------------------------------------------------
 #
 #                Particles.jl
@@ -17,6 +12,7 @@
 module Particles
 
 using WorkingPrecision: wpFloat, wpInt
+using Constants: m_e, m_p, e
 
 
 #-------------#   
@@ -29,15 +25,39 @@ export specieTable # Maping specie to mass and charge
 # Structs     # 
 #-------------#-----------------------------------------------------------------
 mutable struct ParticleSoA
-    pos   ::Matrix{wpFloat} # Particle positions with shape (numDims x numPart)
-    vel   ::Matrix{wpFloat} # Particles velocities    shape (numDims x numPart)
-    specie::Vector{wpInt}   # Particle specie identifier (e.g. electron, proton)
-end
+    pos    ::Array{wpFloat, 3}
+    vel    ::Array{wpFloat, 3}
+    species::Vector{wpInt}   # Particle specie identifier (e.g. electron, proton)
+    
+    
+    # Constructors
+    #--------------------------------------------------------------------------
+    """
+        ParticleSoA(pos::Matrix, vel::Matrix, specie, numSteps)
+
+    One would normally only pass initial conditions. This constructor handles
+    the creation of the type accordingly, by adding the initial conditions to
+    an higher order array.
+    """
+    function ParticleSoA(pos     ::Matrix{wpFloat},
+                         vel     ::Matrix{wpFloat},
+                         species ::Vector{wpInt},
+                         numSteps::Integer
+                         )
+        numDims, numParticles = size(pos)
+        positions  = zeros(wpFloat, numDims, numParticles, numSteps + 1)
+        velocities = zeros(wpFloat, numDims, numParticles, numSteps + 1)
+        positions[:, :, 1] .= pos
+        velocities[:, :, 1] .= vel
+        return new(positions, velocities, species)
+    end # constructor 
+end # mutable struct ParticleSoA
 #-------------------------------------------------------------------------------
 
 #------------------#
 # Global variables #
 #------------------#------------------------------------------------------------
-specieTable = [1.0  -1.0   # Electron
-               10.0  1.0]  # Proton
-end
+#              mass charge
+specieTable = [m_e  -e     # Electron
+               m_p   e]    # Proton
+end # module particles

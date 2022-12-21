@@ -1,10 +1,6 @@
 #-------------------------------------------------------------------------------
-#
 # Created 19.12.22
 # Author: e.s.oyre@astro.uio.no
-#
-# Last edited: 19.12.22
-#
 #-------------------------------------------------------------------------------
 #
 #                Constants.jl
@@ -15,8 +11,11 @@
 
 module Constants
 
-k_B         = 1.380649e-23 # J/K ....  Boltzmann's constant
-c           = 299792458 # m/s ........ Speed of light in vacuum
-cSquaredInv = 1/c^2     # s^2 m^-2 ... Inverse of the light speed squared
+k_B      = 1.380649e-23 # J/K ............................. Boltzmann's constant
+e        = 1.602176634e-19 # C ............................... Elementary charge
+c        = 299792458 # m/s ............................ Speed of light in vacuum
+cSqrdInv = 1/c^2     # s^2 m^-2 ............. Inverse of the light speed squared
+m_e      = 9.1093837015e-31 # Kg ................................. Electron mass
+m_p      = 1.67262192369e-27 # Kg .................................. Proton mass
 
 end # module Constants

@@ -81,14 +81,14 @@ function trilinear(mesh   ::Mesh,
     B6 = mesh.bField[:, i+1, j+1, k+1]
     B7 = mesh.bField[:,   i, j+1, k+1]
 
-    E0 = mesh.bField[:,   i,   j,   k]
-    E1 = mesh.bField[:, i+1,   j,   k]
-    E2 = mesh.bField[:, i+1, j+1,   k]
-    E3 = mesh.bField[:,   i, j+1,   k]
-    E4 = mesh.bField[:,   i,   j, k+1]
-    E5 = mesh.bField[:, i+1,   j, k+1]
-    E6 = mesh.bField[:, i+1, j+1, k+1]
-    E7 = mesh.bField[:,   i, j+1, k+1]
+    E0 = mesh.eField[:,   i,   j,   k]
+    E1 = mesh.eField[:, i+1,   j,   k]
+    E2 = mesh.eField[:, i+1, j+1,   k]
+    E3 = mesh.eField[:,   i, j+1,   k]
+    E4 = mesh.eField[:,   i,   j, k+1]
+    E5 = mesh.eField[:, i+1,   j, k+1]
+    E6 = mesh.eField[:, i+1, j+1, k+1]
+    E7 = mesh.eField[:,   i, j+1, k+1]
 
     f0 = (1 - t)*(1 - u)*(1 - v)
     f1 = t*(1 - u)*(1 - v)

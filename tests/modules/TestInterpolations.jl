@@ -71,7 +71,7 @@ function testtrilinear(verbose::Bool)
                         E1[dim, i,j,k] = linearField(xx[i],
                                                      yy[j],
                                                      zz[k],
-                                                     a, b, c, d)
+                                                     2a, 2b, 2c, 2d)
                     end # loop over dim
                 end # loop k
             end # loop j
@@ -91,17 +91,21 @@ function testtrilinear(verbose::Bool)
         for i = 1:N-1
             for j = 1:N-1
                 for k = 1:N-1
-                    answer = linearField(pointx[i],
-                                         pointy[j],
-                                         pointz[k],
-                                         a, b, c, d)
+                    answerB = linearField(pointx[i],
+                                          pointy[j],
+                                          pointz[k],
+                                          a, b, c, d)
+                    answerE = linearField(pointx[i],
+                                          pointy[j],
+                                          pointz[k],
+                                          2a, 2b, 2c, 2d)
                     # Interpolate
                     result = trilinear(mesh1, (i,j,k), (pointx[i],
                                                         pointy[j],
                                                         pointz[k]))
                     # Check result
-                    @test result[1] ≈ [answer, answer, answer]
-                    @test result[2] ≈ [answer, answer, answer]
+                    @test result[1] ≈ [answerB, answerB, answerB]
+                    @test result[2] ≈ [answerE, answerE, answerE]
                 end # over k
             end # over j
         end # over i

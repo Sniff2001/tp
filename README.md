@@ -1,5 +1,5 @@
 # tp
-Embedding trace particles in magnetohydrodynamic environments, or any electromagnetic field. Trace particles moves independently and their motion is governed by the Lorentz force.
+Embedding trace particles in magnetohydrodynamic environments, or any electromagnetic field. Trace particles move independently and their motion is governed by the Lorentz force.
 
 ### Git commit message manners
 The commit message is mainly for other people, so they should be able to understand it now and six months later. Commit messages cannot be longer than one sentence (line) and should start with a tag identifier (see the end of this section).

@@ -51,12 +51,15 @@ function locateCell(coords::Vector{wpFloat},
     # Initial bounds
     low = 1
     high = length(coords)
-    while  (high - low) > 1 # While we haven't found the cell
-        mid  = floor(wpInt, (high - low)/2) + low
+    while  high > low + 1 # While we haven't found the cell
+        mid  = floor(wpInt, (high + low)/2)
         if point > coords[mid]
-            low = mid
-        else
+            low = mid 
+        elseif point < coords[mid]
             high = mid
+	else
+	    low = mid - 1
+	    high = mid
         end # if
     end # while
     return low 

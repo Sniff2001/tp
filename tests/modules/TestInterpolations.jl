@@ -120,8 +120,14 @@ function testlocateCell(verbose)
         point = 2/3
         answer1 = ceil(wpInt, point/dx)
         answer2 = 1
+	answer3 = 2
+	answer4 = 3
+	answer5 = 4
         @test locateCell(coords, point) == answer1
-        @test locateCell(coords, dx) == answer2
+        @test locateCell(coords, dx   ) == answer2
+        @test locateCell(coords, 0.50 ) == answer3
+        @test locateCell(coords, 0.75 ) == answer4
+        @test locateCell(coords, 1.00 ) == answer5
     end # testset
 end # function testLocateCell
 end # module TestInterpolations

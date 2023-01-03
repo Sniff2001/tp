@@ -7,8 +7,22 @@
 
 using Test
 using TestInterpolations
+using TestSchemes
+using TestSolvers
 
-@testset verbose = true "Interpolations" begin
-    testtrilinear(true)
-    testlocateCell(true)
-end
+verbose = 2
+    
+@testset verbose = verbose ≥ 1 "Modules" begin
+    @testset verbose = verbose ≥ 2 "Interpolations" begin
+        testtrilinear(verbose ≥ 1)
+        testlocateCell(verbose ≥ 1)
+    end
+    @testset verbose = verbose ≥ 2 "Schemes" begin
+        testeuler(verbose ≥ 3)
+        testeulerCromer(verbose ≥ 3)
+    end
+    @testset verbose = verbose ≥ 2 "Solvers" begin
+        testfullOrbit(verbose ≥ 3)
+        testvay(verbose ≥ 3)
+    end
+end # testset Modules

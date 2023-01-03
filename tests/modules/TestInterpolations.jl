@@ -17,10 +17,18 @@ using WorkingPrecision: wpInt, wpFloat
 using Interpolations
 using Meshes
 
-#export testlocateCell
 export testtrilinear
 export testlocateCell
 
+"""
+    testtrilinear(verbose::Bool)
+
+Testing trilinear interpolation function `trilinear` in a static electromagnetic
+mesh and in a linear electromagnetic mesh.
+In practice, this test also tests the Mesh-constructors: 
+    Mesh(bField, eField)
+    Mesh(bField, eField, xCoords, yCoords, zCoords)
+"""
 function testtrilinear(verbose::Bool)
     @testset verbose=verbose "trilinear" begin
         #
@@ -112,6 +120,11 @@ function testtrilinear(verbose::Bool)
     end # testset
 end # function testtrilinear
 
+"""
+    testlocateCell(verbose::bool)
+Tests the grid search function `locateCell` which uses a binary search
+algorithm. 
+"""
 function testlocateCell(verbose)
     @testset verbose=verbose "locateCell" begin
         N = 5

@@ -12,15 +12,15 @@
 module Schemes
 
 function euler(pos, vel, acc, dt)
-    @. pos = pos + vel * dt
-    @. vel = vel + acc * dt
-    return pos, vel
+    nextPos = @. pos + vel * dt
+    nextVel = @. vel + acc * dt
+    return nextPos, nextVel
 end
 
 function eulerCromer(pos, vel, acc, dt)
-    @. vel = vel + acc * dt
-    @. pos = pos + vel * dt
-    return pos, vel
+    nextVel = @. vel + acc * dt
+    nextPos = @. pos + nextVel * dt
+    return nextPos, nextVel
 end
 
 end

@@ -25,6 +25,27 @@ using Schemes
 using Interpolations
 using WorkingPrecision: wpFloat, wpInt
 
+"""
+    testExBdrift.jl
+
+    This experiment tests numerical particle paths produced by the tp-code 
+against analytical solutions.
+    An electron and proton in a static and homogenous electromagnetic field.
+The electric field is normal to the magnetic field such that the particles will 
+experience an ExB-drift. The resulting numerical paths are compared to the
+analytic paths, which root mean square errors entails the test assertions. 
+
+    In practice, this experiment also tests dependent type-constructors and
+methods, such as:
+    ParticleSoA(pos::Matrix, vel::Matrix, species::Vector, numSteps::Integer)
+    Mesh(bField::Array{4},
+         eField::Array{4},
+         xCoords::Vector,
+         yCoords::Vector,
+         zCoords::Vector)
+    run!(patch:Patch)
+and the chosen numerical solver, scheme and interpolation chosen.
+"""
 #-------------------------------------------------------------------------------
 # EXPERIMENT PARAMTERS
 #

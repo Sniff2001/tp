@@ -1,10 +1,6 @@
 #-------------------------------------------------------------------------------
-#
 # Created 13.12.22
 # Author: e.s.oyre@astro.uio.no
-#
-# Last edited: 14.12.22
-#
 #-------------------------------------------------------------------------------
 #
 #             TestInterpolations.jl
@@ -21,10 +17,18 @@ using WorkingPrecision: wpInt, wpFloat
 using Interpolations
 using Meshes
 
-#export testlocateCell
 export testtrilinear
 export testlocateCell
 
+"""
+    testtrilinear(verbose::Bool)
+
+Testing trilinear interpolation function `trilinear` in a static electromagnetic
+mesh and in a linear electromagnetic mesh.
+In practice, this test also tests the Mesh-constructors: 
+    Mesh(bField, eField)
+    Mesh(bField, eField, xCoords, yCoords, zCoords)
+"""
 function testtrilinear(verbose::Bool)
     @testset verbose=verbose "trilinear" begin
         #
@@ -75,7 +79,7 @@ function testtrilinear(verbose::Bool)
                         E1[dim, i,j,k] = linearField(xx[i],
                                                      yy[j],
                                                      zz[k],
-                                                     a, b, c, d)
+                                                     2a, 2b, 2c, 2d)
                     end # loop over dim
                 end # loop k
             end # loop j
@@ -95,23 +99,32 @@ function testtrilinear(verbose::Bool)
         for i = 1:N-1
             for j = 1:N-1
                 for k = 1:N-1
-                    answer = linearField(pointx[i],
-                                         pointy[j],
-                                         pointz[k],
-                                         a, b, c, d)
+                    answerB = linearField(pointx[i],
+                                          pointy[j],
+                                          pointz[k],
+                                          a, b, c, d)
+                    answerE = linearField(pointx[i],
+                                          pointy[j],
+                                          pointz[k],
+                                          2a, 2b, 2c, 2d)
                     # Interpolate
                     result = trilinear(mesh1, (i,j,k), (pointx[i],
                                                         pointy[j],
                                                         pointz[k]))
                     # Check result
-                    @test result[1] ≈ [answer, answer, answer]
-                    @test result[2] ≈ [answer, answer, answer]
+                    @test result[1] ≈ [answerB, answerB, answerB]
+                    @test result[2] ≈ [answerE, answerE, answerE]
                 end # over k
             end # over j
         end # over i
     end # testset
 end # function testtrilinear
 
+"""
+    testlocateCell(verbose::bool)
+Tests the grid search function `locateCell` which uses a binary search
+algorithm. 
+"""
 function testlocateCell(verbose)
     @testset verbose=verbose "locateCell" begin
         N = 5
@@ -120,8 +133,14 @@ function testlocateCell(verbose)
         point = 2/3
         answer1 = ceil(wpInt, point/dx)
         answer2 = 1
+	answer3 = 2
+	answer4 = 3
+	answer5 = 4
         @test locateCell(coords, point) == answer1
-        @test locateCell(coords, dx) == answer2
+        @test locateCell(coords, dx   ) == answer2
+        @test locateCell(coords, 0.50 ) == answer3
+        @test locateCell(coords, 0.75 ) == answer4
+        @test locateCell(coords, 1.00 ) == answer5
     end # testset
 end # function testLocateCell
 end # module TestInterpolations

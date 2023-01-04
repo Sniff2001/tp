@@ -12,8 +12,9 @@
 
 # Import external libraries
 #import Pkg; Pkg.add("Plots")
-using Plots
+#using Plots
 using LinearAlgebra
+using Test
 
 # Import internal modules from tp/src
 using Meshes
@@ -24,6 +25,27 @@ using Schemes
 using Interpolations
 using WorkingPrecision: wpFloat, wpInt
 
+"""
+    testExBdrift.jl
+
+    This experiment tests numerical particle paths produced by the tp-code 
+against analytical solutions.
+    An electron and proton in a static and homogenous electromagnetic field.
+The electric field is normal to the magnetic field such that the particles will 
+experience an ExB-drift. The resulting numerical paths are compared to the
+analytic paths, which root mean square errors entails the test assertions. 
+
+    In practice, this experiment also tests dependent type-constructors and
+methods, such as:
+    ParticleSoA(pos::Matrix, vel::Matrix, species::Vector, numSteps::Integer)
+    Mesh(bField::Array{4},
+         eField::Array{4},
+         xCoords::Vector,
+         yCoords::Vector,
+         zCoords::Vector)
+    run!(patch:Patch)
+and the chosen numerical solver, scheme and interpolation chosen.
+"""
 #-------------------------------------------------------------------------------
 # EXPERIMENT PARAMTERS
 #
@@ -90,7 +112,7 @@ pos[:, 2] = [x0p, y0p, z0p]  # Initial position proton
 particles = ParticleSoA(pos, vel, species, numSteps)
 
 #-------------------------------------------------------------------------------
-# CREATE PATCH AND RUN
+# CREATE PATCH
 patch = Patch(mesh,
               particles,
               Solvers.fullOrbit,
@@ -101,9 +123,12 @@ patch = Patch(mesh,
               numParticles)
 
 #-------------------------------------------------------------------------------
+# RUN SIMULATION
+Patches.run!(patch)
+
+#-------------------------------------------------------------------------------
 # ANALYTICAL SOLUTION 
-numPoints = 100
-times = LinRange(0, tf, numPoints)
+times = LinRange(0, tf, numSteps + 1)
 
 # Gyrofrequency
 function ω(q, B, m)
@@ -139,8 +164,8 @@ rLe = larmorRadius(ωe, vperpe)
 rLp = larmorRadius(ωp, vperpp)
 
 # Compute time evolution of position of both particles
-pose = zeros(Float64, numDims, numPoints)
-posp = zeros(Float64, numDims, numPoints)
+pose = zeros(Float64, numDims, numSteps + 1)
+posp = zeros(Float64, numDims, numSteps + 1)
 pose[1, :] .= x(times, x0e, ωe, rLe, Ey, Bz)
 pose[2, :] .= y(times, y0e, ωe, rLe, Ex, Bz)
 pose[3, :] .= z(times, z0e, vze,  ωe, Ez, Bz)
@@ -149,14 +174,38 @@ posp[2, :] .= y(times, y0p, ωp, rLp, Ex, Bz)
 posp[3, :] .= z(times, z0p, vzp, ωp, Ez, Bz)
 
 #-------------------------------------------------------------------------------
-@time Patches.run!(patch)
-#println(patch.tp.pos)
+# CALCULATE DEVIATIONS FROM ANALYTICAL SOLUTION
+# Calculate the root mean squared error between numerical and analytical 
+#   trajectories for both electron and proton for all position components.
+# Electron
+numPose = patch.tp.pos[:, 1, :]
+numPosp = patch.tp.pos[:, 2, :]
+rmsErrex = √(sum((pose[1,2:numSteps] .- numPose[1,2:numSteps]).^2)/numSteps)
+rmsErrey = √(sum((pose[2,2:numSteps] .- numPose[2,2:numSteps]).^2)/numSteps)
+rmsErrez = √(sum((pose[3,2:numSteps] .- numPose[3,2:numSteps]).^2)/numSteps)
+# Proton
+rmsErrpx = √(sum((posp[1,2:numSteps] .- numPosp[1,2:numSteps]).^2)/numSteps)
+rmsErrpy = √(sum((posp[2,2:numSteps] .- numPosp[2,2:numSteps]).^2)/numSteps)
+rmsErrpz = √(sum((posp[3,2:numSteps] .- numPosp[3,2:numSteps]).^2)/numSteps)
 
-p1 = plot(patch.tp.pos[1, 1, :], patch.tp.pos[2, 1, :], label="Numerical",
-          title="Electron", xlabel="x, m", ylabel="y, m")
-p1 = plot!(pose[1, :], pose[2, :], label="Analytical", ls=:dash)
-p2 = plot(patch.tp.pos[1, 2, :], patch.tp.pos[2, 2, :], label="Numerical",
-          title="Proton", xlabel="x, m", ylabel="y, m")
-p2 = plot!(posp[1, :], posp[2, :], label="Analytical", ls=:dash)
+#-------------------------------------------------------------------------------
+# TEST RESULTS
+@testset verbose = true "ExB-drift" begin
+    @test rmsErrex == 6.066588298648184e-5
+    @test rmsErrey == 5.590378934365529e-5
+    @test rmsErrez == 0.0
+    @test rmsErrpx == 7.641789560048872e-14
+    @test rmsErrpy == 3.369407609089028e-8
+    @test rmsErrpz == 0.0
+end # testset ExB-drift
 
-plot(p1, p2, layout=(2,1))
+#-------------------------------------------------------------------------------
+# PLOT RESULTS
+#p1 = plot(patch.tp.pos[1, 1, :], patch.tp.pos[2, 1, :], label="Numerical",
+#          title="Electron", xlabel="x, m", ylabel="y, m")
+#p1 = plot!(pose[1, :], pose[2, :], label="Analytical", ls=:dash)
+#p2 = plot(patch.tp.pos[1, 2, :], patch.tp.pos[2, 2, :], label="Numerical",
+#          title="Proton", xlabel="x, m", ylabel="y, m")
+#p2 = plot!(posp[1, :], posp[2, :], label="Analytical", ls=:dash)
+#
+#plot(p1, p2, layout=(2,1))

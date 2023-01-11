@@ -30,7 +30,7 @@ function grid(mesh       ::Mesh,
 
     B, E = interpolator(mesh, (i,j,k), (x,y,z))
     
-    return B, E
+    return B, E, i, j, k
 
 end # function grid
 

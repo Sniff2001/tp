@@ -28,6 +28,13 @@ function euler(pos::Vector{wpFloat},
     return nextPos, nextVel
 end # function euler
 
+function euler(vel::Vector{wpFloat},
+               acc::Vector{wpFloat},
+               dt)
+    nextVel = @. vel + acc * dt
+    return nextVel
+end # function euler
+
 
 function eulerCromer(pos::Vector{wpFloat},
                      vel::Vector{wpFloat}, 
@@ -36,6 +43,13 @@ function eulerCromer(pos::Vector{wpFloat},
     nextVel = @. vel + acc * dt
     nextPos = @. pos + nextVel * dt
     return nextPos, nextVel
+end # function eulerCromer
+
+function eulerCromer(vel::Vector{wpFloat},
+                     acc::Vector{wpFloat},
+                     dt)
+    nextVel = @. vel + acc * dt
+    return nextVel
 end # function eulerCromer
 
 

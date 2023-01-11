@@ -18,7 +18,9 @@ using LinearAlgebra:    norm, ×, ⋅
 using WorkingPrecision: wpFloat, wpInt
 using Constants:        c, cSqrdInv
 
-
+#---------------------------------------#
+# Integration of differential equations #
+#---------------------------------------#---------------------------------------
 function euler(pos::Vector{wpFloat},
                vel::Vector{wpFloat}, 
                acc::Vector{wpFloat},
@@ -159,5 +161,71 @@ function boris(vel   ::Vector{wpFloat},
     
     return velNext
 end # function boris
+#-------------------------------------------------------------------------------
 
+
+#-----------------#
+# Differentiation #
+#-----------------#-------------------------------------------------------------
+
+"""
+    derivateCentral(field, dx)
+First and last grid point are ill calculated.
+"""
+function derivateCentral(field::Vector{wpFloat},
+                         dx
+                         )
+    return (circshift(field, -1) - circshift(field, 1))/2dx
+end # function derivateCentral
+#|
+function derivateCentral(field      ::array{wpFloat, 3},
+                         gridSpacing::wpFloat,
+                         axis       ::Tuple{wpInt, wpInt, wpInt}
+                         )
+    ax1 = -1 .* axis
+    return (circshift(field, ax1) - circshift(field, axis))/2gridSpacing
+end # function derivateCentral
+
+"""
+    derivate4thOrder(field, dx)
+First and last two grid point are ill calculated.
+"""
+function derivate4thorder(field      ::Array{wpFloat, 3},
+                          gridSpacing::wpFloat,
+                          axis       ::Tuple{wpInt, wpInt, wpInt}
+                          )
+    ax1 = -2 .* axis
+    ax2 = -1 .* axis
+    ax3 =  2 .* axis
+    return (-circshift(field, ax1) + 8.0 .* circshift(field, ax2) - 
+        8.0 .* circshift(field, axis) + circshift(field, ax3))/12.0gridSpacing
+end # function derivate4thOrder
+
+"""
+    ∇(field, dx, dy, dz, scheme)
+The gradient operator. Calucaletes the gradient of a 3-dimensional scalar
+field. Requires grid spacing on all three axis and the numerical scheme as
+arguments. The scheme is given as a function type, e.g. Schemes.derivateCentral.
+"""
+function ∇(field::Array{wpFloat, 3},
+           dx   ::wpFloat,
+           dy   ::wpFloat,
+           dz   ::wpFloat,
+           scheme::Function
+           )
+    dfdx = scheme(field, dx, (1,0,0))
+    dfdy = scheme(field, dy, (0,1,0))
+    dfdz = scheme(field, dz, (0,0,1))
+    return [dfdx, dfdy, dfdz]
+end # functin ∇ 
+#|
+function ∇(field::Array{wpFloat, 2},
+           dx   ::wpFloat,
+           dy   ::wpFloat,
+           scheme::Function
+           )
+    dfdx = scheme(field, dx, (1,0,0))
+    dfdy = scheme(field, dy, (0,1,0))
+    return [dfdx, dfdy]
+end # functin ∇ 
 end # module schemes

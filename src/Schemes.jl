@@ -111,6 +111,16 @@ function vay(vel   ::Vector{wpFloat},
 end # function vay
 
 
+"""
+    boris(pos, vel, specie, bField, eField, dt, scheme)
+
+Implementation of the Boris pusher. For integrating the relativistic Lorentz
+eqution. Adapted form Ripperda et al. 2018. This is only the second step of the
+implementation, where the relativistic velocity is advanced a time step. The
+first step involves advancing the position half a time step using
+`positionHalfStep`, and in the last step the position is advanced its final 
+half using the same function but with the new relativistic velocity.
+"""
 function boris(vel   ::Vector{wpFloat},
                bField::Vector{wpFloat},
                eField::Vector{wpFloat},

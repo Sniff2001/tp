@@ -178,7 +178,7 @@ function derivateCentral(field::Vector{wpFloat},
     return (circshift(field, -1) - circshift(field, 1))/2dx
 end # function derivateCentral
 #|
-function derivateCentral(field      ::array{wpFloat, 3},
+function derivateCentral(field      ::Array{wpFloat, 3},
                          gridSpacing::wpFloat,
                          axis       ::Tuple{wpInt, wpInt, wpInt}
                          )
@@ -190,7 +190,7 @@ end # function derivateCentral
     derivate4thOrder(field, dx)
 First and last two grid point are ill calculated.
 """
-function derivate4thorder(field      ::Array{wpFloat, 3},
+function derivate4thOrder(field      ::Array{wpFloat, 3},
                           gridSpacing::wpFloat,
                           axis       ::Tuple{wpInt, wpInt, wpInt}
                           )
@@ -228,4 +228,42 @@ function ∇(field::Array{wpFloat, 2},
     dfdy = scheme(field, dy, (0,1,0))
     return [dfdx, dfdy]
 end # functin ∇ 
+
+
+#----------------#
+# Linear albebra #
+#----------------#--------------------------------------------------------------
+function norm4(field::Array{wpFloat, 4},
+               axis ::wpInt=1
+               )
+    if axis == 1
+        dims = size(field[1,:,:,:])
+        fieldStrength = zeros(dims)
+        for i = 1:dims[1]
+            for j = 1:dims[2]
+                for k = 1:dims[3]
+                    fieldStrength[i,j,k] = √(field[1,i,j,k]^2 + 
+                                             field[2,i,j,k]^2 +
+                                             field[3,i,j,k]^2)
+                end # loop k
+            end # look j
+        end # loop i
+    elseif axis == 4
+        dims = size(field[:,:,:,1])
+        fieldStrength = zeros(dims)
+        for i = 1:dims[1]
+            for j = 1:dims[2]
+                for k = 1:dims[3]
+                    fieldStrength[i,j,k] = √(field[i,j,k,1]^2 + 
+                                             field[i,j,k,2]^2 +
+                                             field[i,j,k,3]^2)
+                end # loop k
+            end # look j
+        end # loop i
+    else
+        println("Error: Yours axes are wierd...")
+    end # if
+    return fieldStrength
+end # function norm4
+
 end # module schemes

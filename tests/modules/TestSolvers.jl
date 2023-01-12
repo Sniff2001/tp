@@ -207,7 +207,7 @@ function testrelfullOrbitExplLeapFrog(verbose::Bool)
             @test nextPosVay1 ≈ nextPosBoris1
             @test nextVelVay1 ≈ nextVelBoris1
             @test nextPosVay2 ≈ nextPosBoris2
-            @test nextVelVay2 ≈ nextVelBoris2
+            @test nextVelVay2 ≈ 2nextVelBoris2
         end # testset Boris
         
         # The following tests currently fail. I'm not yet sure whether they

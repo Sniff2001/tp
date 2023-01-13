@@ -45,8 +45,9 @@ mutable struct ParticleSoA
                          numSteps::Integer
                          )
         numDims, numParticles = size(pos)
+        numVels, numParticles = size(vel)
         positions  = zeros(wpFloat, numDims, numParticles, numSteps + 1)
-        velocities = zeros(wpFloat, numDims, numParticles, numSteps + 1)
+        velocities = zeros(wpFloat, numVels, numParticles, numSteps + 1)
         positions[:, :, 1] .= pos
         velocities[:, :, 1] .= vel
         return new(positions, velocities, species)

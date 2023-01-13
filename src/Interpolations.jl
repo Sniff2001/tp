@@ -140,22 +140,5 @@ function trilinearComputeField(field  ::Array{wpFloat, 4},
     A  = c0*A0 + c1*A1 + c2*A2 + c3*A3 + c4*A4 + c5*A5 + c6*A6 + c7*A7
     return A
 end # function trilinearComputeField
-#|
-function trilinearComputeField(field  ::Array{wpFloat, 3},
-                               (i,j,k)::Tuple{wpInt, wpInt, wpInt},
-                               c      ::Vector{wpFloat}
-                               )
-    A0 = field[  i,   j,   k]
-    A1 = field[i+1,   j,   k]
-    A2 = field[i+1, j+1,   k]
-    A3 = field[  i, j+1,   k]
-    A4 = field[  i,   j, k+1]
-    A5 = field[i+1,   j, k+1]
-    A6 = field[i+1, j+1, k+1]
-    A7 = field[  i, j+1, k+1]
-    A  = c0*A0 + c1*A1 + c2*A2 + c3*A3 + c4*A4 + c5*A5 + c6*A6 + c7*A7
-    return A
-end # function trilinearComputeField
-#_
 
 end # module Interpolations

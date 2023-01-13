@@ -11,7 +11,7 @@ using TestInterpolations
 using TestSchemes
 using TestSolvers
 
-verbose = 3
+verbose = 4
 
 @testset verbose = verbose ≥ 1 "All tests" begin
     @testset verbose = verbose ≥ 2 "Unit tests" begin

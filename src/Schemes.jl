@@ -241,6 +241,38 @@ function ∇(field::Array{wpFloat, 2},
 end # function ∇ 
 
 
+"""
+    ∇×(field, dx, dy, dz, derivscheme)
+The curl operator. Calculates the curl of a 3-dimensional vector
+field. Requires grid spacing on all three axis and the numerical scheme as
+arguments. The scheme is given as a function type, e.g. Schemes.derivateCentral.
+"""
+function curl(field      ::Array{wpFloat, 4},
+              dx         ::wpFloat,
+              dy         ::wpFloat,
+              dz         ::wpFloat,
+              derivscheme::Function
+              )
+    fx = field[1,:,:,:]
+    fy = field[2,:,:,:]
+    fz = field[3,:,:,:]
+    derivx = (1,0,0)
+    derivy = (0,1,0)
+    derivz = (0,0,1)
+    ∂fx∂y = dervivscheme(fx, dy, derivy)
+    ∂fx∂z = dervivscheme(fx, dz, derivz)
+    ∂fy∂x = dervivscheme(fy, dx, derivx)
+    ∂fy∂z = dervivscheme(fy, dz, derivz)
+    ∂fz∂x = dervivscheme(fz, dx, derivx)
+    ∂fz∂y = dervivscheme(fz, dy, derivy)
+    nx, ny, nz = size(field)
+    result = zeros(3, nx, ny, nz)
+    result[1, :, :, :] = ∂fz∂y .- ∂fy∂z
+    result[2, :, :, :] = ∂fx∂z .- ∂fz∂x
+    result[3, :, :, :] = ∂fy∂x .- ∂fx∂y
+    return result
+end # functin curl
+
 #----------------#
 # Linear albebra #
 #----------------#--------------------------------------------------------------

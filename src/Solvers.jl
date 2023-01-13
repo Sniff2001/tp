@@ -11,9 +11,10 @@
 module Solvers
 
 # Standard libraries
-using LinearAlgebra:    ×
+using LinearAlgebra:    ×, ⋅, norm
 # Internal modules
 using WorkingPrecision: wpInt, wpFloat
+using Constants:        c
 using Meshes:           Mesh          
 using Particles:        specieTable
 using Interpolations:   grid
@@ -132,8 +133,8 @@ function GCA(pos         ::Vector{wpFloat},
     #or just? posNext, v = scheme(pos, vel[1:3], acc, dt)
     
     # Compute some auxiliary quantities
-    vperpnext = √(norm(v)^2 - vparalnext²) 
-    μnext = m*vparalnext²/(2B) #  (should be constant for all times)
+    vperpnext = √(norm(v)^2 - vparalnext^2) 
+    μnext = m*vperpnext^2/(2B) #  (should be constant for all times)
     # Maybe μ should be forced constant and kept as a parameter to this solver.
     #   This would require a change in the implementation of solvers and
     #   Patch.run!, where e.g. the particle type is passed to solver. Or that
@@ -141,7 +142,7 @@ function GCA(pos         ::Vector{wpFloat},
     #   define different run methods depending on the particle type. 
 
     velNext = [v[1], v[2], v[3], vperpnext, vparalnext, μnext]
-    return posNex, velNext
+    return posNext, velNext
 end # function GCA
 
 

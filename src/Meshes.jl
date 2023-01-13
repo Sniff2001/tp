@@ -21,9 +21,9 @@ export Mesh
 # Structs     #
 #-------------#-----------------------------------------------------------------
 struct Mesh
-    bField ::AbstractArray{wpFloat}   # The magnetic field
-    eField ::AbstractArray{wpFloat}   # The eletric field
-    ∇B     ::Vector{Array{wpFloat, 3}} # The gradient of the magnetic field
+    bField ::AbstractArray{wpFloat} # The magnetic field
+    eField ::AbstractArray{wpFloat} # The eletric field
+    ∇B     ::AbstractArray{wpFloat} # The gradient of the magnetic field
     xCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points
     yCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points
     zCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points

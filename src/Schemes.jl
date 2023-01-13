@@ -24,15 +24,16 @@ using Constants:        c, cSqrdInv
 function euler(pos::Vector{wpFloat},
                vel::Vector{wpFloat}, 
                acc::Vector{wpFloat},
-               dt)
+               dt ::wpFloat
+               )
     nextPos = @. pos + vel * dt
     nextVel = @. vel + acc * dt
     return nextPos, nextVel
 end # function euler
-
-function euler(vel::Vector{wpFloat},
-               acc::Vector{wpFloat},
-               dt)
+function euler(vel::wpFloat,
+               acc::wpFloat,
+               dt ::wpFloat,
+               )
     nextVel = @. vel + acc * dt
     return nextVel
 end # function euler
@@ -41,15 +42,16 @@ end # function euler
 function eulerCromer(pos::Vector{wpFloat},
                      vel::Vector{wpFloat}, 
                      acc::Vector{wpFloat},
-                     dt)
+                     dt ::wpFloat
+                     )
     nextVel = @. vel + acc * dt
     nextPos = @. pos + nextVel * dt
     return nextPos, nextVel
 end # function eulerCromer
-
-function eulerCromer(vel::Vector{wpFloat},
-                     acc::Vector{wpFloat},
-                     dt)
+function eulerCromer(vel::wpFloat,
+                     acc::wpFloat,
+                     dt ::wpFloat
+                     )
     nextVel = @. vel + acc * dt
     return nextVel
 end # function eulerCromer
@@ -57,7 +59,7 @@ end # function eulerCromer
 
 function positionHalfStep(pos::Vector{wpFloat},
                           vel::Vector{wpFloat},
-                          dt
+                          dt ::wpFloat
                           )
     return pos + 0.5dt*vel
 end # function positionHalfStep
@@ -213,10 +215,15 @@ function ∇(field::Array{wpFloat, 3},
            dz   ::wpFloat,
            scheme::Function
            )
-    dfdx = scheme(field, dx, (1,0,0))
-    dfdy = scheme(field, dy, (0,1,0))
-    dfdz = scheme(field, dz, (0,0,1))
-    return [dfdx, dfdy, dfdz]
+    ∂f∂x = scheme(field, dx, (1,0,0))
+    ∂f∂y = scheme(field, dy, (0,1,0))
+    ∂f∂z = scheme(field, dz, (0,0,1))
+    nx, ny, nz = size(field)
+    gradient = zeros(3, nx, ny, nz)
+    gradient[1, :, :, :] = ∂f∂x
+    gradient[2, :, :, :] = ∂f∂y
+    gradient[3, :, :, :] = ∂f∂z
+    return gradient
 end # functin ∇ 
 #|
 function ∇(field::Array{wpFloat, 2},
@@ -226,8 +233,12 @@ function ∇(field::Array{wpFloat, 2},
            )
     dfdx = scheme(field, dx, (1,0,0))
     dfdy = scheme(field, dy, (0,1,0))
-    return [dfdx, dfdy]
-end # functin ∇ 
+    nx, ny = size(field)
+    gradient = zeros(3, nx, ny)
+    gradient[1, :, :] = ∂f∂x
+    gradient[2, :, :] = ∂f∂y
+    return gradient
+end # function ∇ 
 
 
 #----------------#

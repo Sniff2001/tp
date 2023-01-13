@@ -158,13 +158,21 @@ and the chosen numerical solver, scheme and interpolation chosen.
     # Set initial position and velocities
     pos = zeros(Float64, numDims, numParticles) # Position -> origin
     vel = zeros(Float64, numDims, numParticles) # Velocity
+    velGCA = zeros(Float64, numDims + 3, numParticles) # Velocity
     vel[:, 1] = [vxe, vye, vze]  # Initial velocity electron
     vel[:, 2] = [vxp, vyp, vzp]  # Initial velocity proton
+    vperpe = √(vxe^2 + vye^2)
+    vperpp = √(vxp^2 + vyp^2)
+    μₑ = me*vperpe^2/2Bz
+    μₚ = me*vperpe^2/2Bz
+    velGCA[:, 1] = [vxe, vye, vze, vperpe, vze, μₑ]
+    velGCA[:, 2] = [vxp, vyp, vzp, vperpp, vzp, μₚ]
     pos[:, 1] = [x0e, y0e, z0e]  # Initial position electron
     pos[:, 2] = [x0p, y0p, z0p]  # Initial position proton
     # Create ParticlesSoA-instance
     particlesEC = ParticleSoA(pos, vel, species, numSteps)
     particlesVay = ParticleSoA(pos, vel, species, numSteps)
+    particlesGCA = ParticleSoA(pos, velGCA, species, numSteps)
     
 #-------------------------------------------------------------------------------
     # CREATE PATCH
@@ -196,12 +204,21 @@ and the chosen numerical solver, scheme and interpolation chosen.
     #              numSteps,
     #              numParticles)
     
+    # non-relativistic GCA
+    patchGCA = Patch(mesh,
+                     particlesGCA,
+                     Solvers.GCA,
+                     Schemes.euler,
+                     Interpolations.trilinearGCA,
+                     dt,
+                     numSteps,
+                     numParticles)
 #-------------------------------------------------------------------------------
     # RUN SIMULATION
     Patches.run!(patchEC)
     Patches.run!(patchVay)
-    #println(patchEC == patchVay)
     #Patches.run!(patchBoris)
+    Patches.run!(patchGCA)
     
 #-------------------------------------------------------------------------------
     # CALCULATE DEVIATIONS FROM ANALYTICAL SOLUTION
@@ -212,13 +229,19 @@ and the chosen numerical solver, scheme and interpolation chosen.
     # Electron
     numPose = patchEC.tp.pos[:, 1, :]
     numPosp = patchEC.tp.pos[:, 2, :]
-    rmsErrexEC = √(sum((pose[1,2:numSteps] .- numPose[1,2:numSteps]).^2)/numSteps)
-    rmsErreyEC = √(sum((pose[2,2:numSteps] .- numPose[2,2:numSteps]).^2)/numSteps)
-    rmsErrezEC = √(sum((pose[3,2:numSteps] .- numPose[3,2:numSteps]).^2)/numSteps)
+    rmsErrexEC = √(sum((pose[1,2:numSteps] .-
+        numPose[1,2:numSteps]).^2)/numSteps)
+    rmsErreyEC = √(sum((pose[2,2:numSteps] .- 
+        numPose[2,2:numSteps]).^2)/numSteps)
+    rmsErrezEC = √(sum((pose[3,2:numSteps] .- 
+        numPose[3,2:numSteps]).^2)/numSteps)
     # Proton
-    rmsErrpxEC = √(sum((posp[1,2:numSteps] .- numPosp[1,2:numSteps]).^2)/numSteps)
-    rmsErrpyEC = √(sum((posp[2,2:numSteps] .- numPosp[2,2:numSteps]).^2)/numSteps)
-    rmsErrpzEC = √(sum((posp[3,2:numSteps] .- numPosp[3,2:numSteps]).^2)/numSteps)
+    rmsErrpxEC = √(sum((posp[1,2:numSteps] .- 
+        numPosp[1,2:numSteps]).^2)/numSteps)
+    rmsErrpyEC = √(sum((posp[2,2:numSteps] .- 
+        numPosp[2,2:numSteps]).^2)/numSteps)
+    rmsErrpzEC = √(sum((posp[3,2:numSteps] .- 
+        numPosp[3,2:numSteps]).^2)/numSteps)
     
     # Vay
     # Electron
@@ -238,6 +261,23 @@ and the chosen numerical solver, scheme and interpolation chosen.
     rmsErrpzVay = √(sum((posp[3,2:numSteps] .-
         numPosp[3,2:numSteps]).^2)/numSteps)
 
+    # GCA
+    # Electron
+    numPose = patchGCA.tp.pos[:, 1, :]
+    numPosp = patchGCA.tp.pos[:, 2, :]
+    rmsErrexGCA = √(sum((pose[1,2:numSteps] .-
+        numPose[1,2:numSteps]).^2)/numSteps)
+    rmsErreyGCA = √(sum((pose[2,2:numSteps] .-
+        numPose[2,2:numSteps]).^2)/numSteps)
+    rmsErrezGCA = √(sum((pose[3,2:numSteps] .-
+        numPose[3,2:numSteps]).^2)/numSteps)
+    # Proton
+    rmsErrpxGCA = √(sum((posp[1,2:numSteps] .-
+        numPosp[1,2:numSteps]).^2)/numSteps)
+    rmsErrpyGCA = √(sum((posp[2,2:numSteps] .-
+        numPosp[2,2:numSteps]).^2)/numSteps)
+    rmsErrpzGCA = √(sum((posp[3,2:numSteps] .-
+        numPosp[3,2:numSteps]).^2)/numSteps)
 #-------------------------------------------------------------------------------
 # TEST RESULTS
     @testset verbose = true "Euler-Cromer" begin
@@ -261,11 +301,13 @@ end # testset ExB-drift
 
 #-------------------------------------------------------------------------------
 # PLOT RESULTS
-#p1 = plot(patch.tp.pos[1, 1, :], patch.tp.pos[2, 1, :], label="Numerical",
+#pos = patchGCA.tp.pos
+#p1 = plot(pos[1, 1, :], pos[2, 1, :], label="Numerical",
 #          title="Electron", xlabel="x, m", ylabel="y, m")
-#p1 = plot!(pose[1, :], pose[2, :], label="Analytical", ls=:dash)
-#p2 = plot(patch.tp.pos[1, 2, :], patch.tp.pos[2, 2, :], label="Numerical",
+##p1 = plot!(pose[1, :], pose[2, :], label="Analytical", ls=:dash)
+#p2 = plot(pos[1, 2, :], pos[2, 2, :], label="Numerical",
 #          title="Proton", xlabel="x, m", ylabel="y, m")
-#p2 = plot!(posp[1, :], posp[2, :], label="Analytical", ls=:dash)
+##p2 = plot!(posp[1, :], posp[2, :], label="Analytical", ls=:dash)
 #
 #plot(p1, p2, layout=(2,1))
+

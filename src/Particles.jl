@@ -13,6 +13,7 @@ module Particles
 
 using WorkingPrecision: wpFloat, wpInt
 using Constants: m_e, m_p, e
+using Utilities: norm3
 
 
 #-------------#   
@@ -23,6 +24,7 @@ export specieTable # Maping specie to mass and charge
 export reset!      # Resets particle positions to zero (except initial position)
 export setinitpos! # Sets the initial position of particles
 export setinitvel! # Sets the initial velocity of particles
+export kineticenergy # Computes the non-rel. kinetic energy at all time steps
 
 #-------------#   
 # Structs     # 
@@ -90,6 +92,21 @@ function setinitvel!(particles::ParticleSoA,
                      partIdx  ::wpInt)
     particles.vel[:, partIdx, 1] .= vel
 end # function setinitvel
+
+
+#----------------------#
+# Auxiliary quantities #
+#-------------------------------------------------------------------------------
+function kineticenergy(particles::ParticleSoA)
+    _, npart, N = size(particles.pos) # Will fail for GCA-particles
+    v = norm3(particles.vel) # Will fail for GCA-particles
+    Ek = zeros(npart, N)
+    for i = 1:npart
+        mass = specieTable[particles.species[i], 1]
+        @. Ek[i,:] = 0.5*mass*v[i,:]^2
+    end # loop i
+    return Ek
+end # function kineticenergy
 
 #------------------#
 # Global variables #

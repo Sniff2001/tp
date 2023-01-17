@@ -11,10 +11,9 @@
 
 module Meshes
 
-using PyPlot
-
 using WorkingPrecision: wpFloat, wpInt
-using Schemes:          derivate4thOrder, derivateCentral, ∇, norm4
+using Schemes:          derivate4thOrder, derivateCentral, ∇
+using Utilities:        norm4
 
 # Simple mesh
 export Mesh

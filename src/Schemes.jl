@@ -276,16 +276,49 @@ end # functin curl
 #----------------#
 # Linear albebra #
 #----------------#--------------------------------------------------------------
+"""
+    norm2(field, axis)
+Calculates the p=2 norm of the vectors in a 1D vector field, i.e. the field
+strength. The argument 'axis' determines whether the vector components are
+stored in the first or second dimension of the array storing the field.
+"""
+function norm2(field::Matrix{wpFloat},
+               axis ::wpInt=1
+               )
+    dims = size(field)
+    if axis == 1
+        fieldstrength = zeros(dims[2])
+        for i = 1:dims[2]
+            fieldstrength[i] = norm(field[:, i])
+        end # loop i
+    elseif axis == 2
+        fieldstrength = zeros(dims[1])
+        for i = 1:dims[1]
+            fieldstrength[i] = norm(field[i, :])
+        end
+    else
+        println("Error: Your axes are wierd...")
+    end # if
+    return fieldstrength
+end # function norm2
+
+
+"""
+    norm4(field, axis)
+Calculates the p=2 norm of the vectors in a 3D vector field, i.e. the field
+strength. The argument 'axis' determines whether the vector components are
+stored in the first or fourth dimension of the array storing the field.
+"""
 function norm4(field::Array{wpFloat, 4},
                axis ::wpInt=1
                )
     if axis == 1
         dims = size(field[1,:,:,:])
-        fieldStrength = zeros(dims)
+        fieldstrength = zeros(dims)
         for i = 1:dims[1]
             for j = 1:dims[2]
                 for k = 1:dims[3]
-                    fieldStrength[i,j,k] = √(field[1,i,j,k]^2 + 
+                    fieldstrength[i,j,k] = √(field[1,i,j,k]^2 + 
                                              field[2,i,j,k]^2 +
                                              field[3,i,j,k]^2)
                 end # loop k
@@ -293,11 +326,11 @@ function norm4(field::Array{wpFloat, 4},
         end # loop i
     elseif axis == 4
         dims = size(field[:,:,:,1])
-        fieldStrength = zeros(dims)
+        fieldstrength = zeros(dims)
         for i = 1:dims[1]
             for j = 1:dims[2]
                 for k = 1:dims[3]
-                    fieldStrength[i,j,k] = √(field[i,j,k,1]^2 + 
+                    fieldstrength[i,j,k] = √(field[i,j,k,1]^2 + 
                                              field[i,j,k,2]^2 +
                                              field[i,j,k,3]^2)
                 end # loop k
@@ -306,7 +339,7 @@ function norm4(field::Array{wpFloat, 4},
     else
         println("Error: Yours axes are wierd...")
     end # if
-    return fieldStrength
+    return fieldstrength
 end # function norm4
 
 end # module schemes

@@ -164,5 +164,21 @@ function normal3Donlyz((x0, y0, z0)::Tuple{wpFloat, wpFloat, wpFloat},
     return (xx, yy, zz), (dx, dy, dz), A
 end # function normal3donlyz
 
+function initparticlesuniform(
+    numparticles::wpInt,
+    pos0        ::Vector{wpFloat}, 
+    posf        ::Vector{wpFloat}, 
+    vel0        ::Vector{wpFloat}, 
+    velf        ::Vector{wpFloat}, 
+    )
+    numdims = 3
+    spatialextent = posf .- pos0
+    velocityrange = velf .- vel0
+    r = rand(wpFloat, (2numdims, numparticles)) # 2 for both position and
+    # velocity 
+    positions  = pos0 .+ (spatialextent .* r[1:numdims, :])
+    velocities = vel0 .+ (velocityrange .* r[4:2numdims, :])
+    return positions, velocities
+end # function initparticlesuniform
 
 end # module utilities

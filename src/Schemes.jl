@@ -249,11 +249,10 @@ field. Requires grid spacing on all three axis and the numerical scheme as
 arguments. The scheme is given as a function type, e.g. Schemes.derivateCentral.
 """
 function curl(field      ::Array{wpFloat, 4},
-              dx         ::wpFloat,
-              dy         ::wpFloat,
-              dz         ::wpFloat,
+              gridsizes  ::Tuple{wpFloat, wpFloat, wpFloat},
               derivscheme::Function
               )
+    dx, dy, dz = gridsizes
     fx = field[1,:,:,:]
     fy = field[2,:,:,:]
     fz = field[3,:,:,:]

@@ -147,9 +147,9 @@ and the chosen numerical solver, scheme and interpolation chosen.
     E[2, :, :, :] .= Ey
     E[3, :, :, :] .= Ez
     # Create coordinates of cell
-    xCoords = [0.0, 1.0]
-    yCoords = [0.0, 1.0]
-    zCoords = [0.0, 1.0]
+    xCoords = [-0.1, 1.1]
+    yCoords = [-0.1, 1.1]
+    zCoords = [-0.1, 1.1]
     # Create Mesh instance
     mesh = Mesh(B, E, xCoords, yCoords, zCoords)
     
@@ -184,7 +184,8 @@ and the chosen numerical solver, scheme and interpolation chosen.
                     Interpolations.trilinear,
                     dt,
                     numSteps,
-                    numParticles)
+                    numParticles
+                    )
     # Relativistic Vay pusher
     patchVay = Patch(mesh,
                      particlesVay,
@@ -279,19 +280,35 @@ and the chosen numerical solver, scheme and interpolation chosen.
     rmsErrpzGCA = √(sum((posp[3,2:numSteps] .-
         numPosp[3,2:numSteps]).^2)/numSteps)
 #-------------------------------------------------------------------------------
+# PLOT RESULTS
+    if length(ARGS) >= 1 && ARGS[1] == "plot"
+        using Plots
+        println("in")
+        pos = patchEC.tp.pos
+        p1 = plot(pos[1, 1, :], pos[2, 1, :], label="Numerical",
+                  title="Electron", xlabel="x, m", ylabel="y, m")
+        #p1 = plot!(pose[1, :], pose[2, :], label="Analytical", ls=:dash)
+        p2 = plot(pos[1, 2, :], pos[2, 2, :], label="Numerical",
+                  title="Proton", xlabel="x, m", ylabel="y, m")
+        #p2 = plot!(posp[1, :], posp[2, :], label="Analytical", ls=:dash)
+        
+        plot(p1, p2, layout=(2,1))
+        gui()
+    end # if plot
+#-------------------------------------------------------------------------------
 # TEST RESULTS
     @testset verbose = true "Euler-Cromer" begin
-        @test rmsErrexEC == 6.066588298648184e-5
-        @test rmsErreyEC == 5.590378934365529e-5
+        @test rmsErrexEC == 6.066588298648159e-5
+        @test rmsErreyEC == 5.5903789343654834e-5
         @test rmsErrezEC == 0.0
         @test rmsErrpxEC == 7.641789560048872e-14
-        @test rmsErrpyEC == 3.369407609089028e-8
+        @test rmsErrpyEC == 3.3694076090881336e-8
         @test rmsErrpzEC == 0.0
     end # testset Euler-Cromer
 #
     @testset verbose = true "Vay" begin
-        @test rmsErrexVay == 1.0902384513274849e-7
-        @test rmsErreyVay == 1.0818615735743528e-7
+        @test rmsErrexVay == 1.0902384513274832e-7
+        @test rmsErreyVay == 1.0818615735766856e-7
         @test rmsErrezVay == 0.0
         @test rmsErrpxVay == 3.772326801578384e-14
         @test rmsErrpyVay == 2.802190198707962e-14
@@ -299,15 +316,4 @@ and the chosen numerical solver, scheme and interpolation chosen.
     end # testset Euler-Cromer
 end # testset ExB-drift
 
-#-------------------------------------------------------------------------------
-# PLOT RESULTS
-#pos = patchGCA.tp.pos
-#p1 = plot(pos[1, 1, :], pos[2, 1, :], label="Numerical",
-#          title="Electron", xlabel="x, m", ylabel="y, m")
-##p1 = plot!(pose[1, :], pose[2, :], label="Analytical", ls=:dash)
-#p2 = plot(pos[1, 2, :], pos[2, 2, :], label="Numerical",
-#          title="Proton", xlabel="x, m", ylabel="y, m")
-##p2 = plot!(posp[1, :], posp[2, :], label="Analytical", ls=:dash)
-#
-#plot(p1, p2, layout=(2,1))
 

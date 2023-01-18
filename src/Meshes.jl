@@ -30,6 +30,7 @@ struct Mesh
     xCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points
     yCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points
     zCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points
+    domain ::Matrix{wpFloat} # Contains the extent of the numerical domain
     numdims::wpInt
 
     # Constructors
@@ -41,8 +42,13 @@ struct Mesh
                   yCoords::Vector{wpFloat},
                   zCoords::Vector{wpFloat}
                   )
-        numdims = 4
-        return new(bField, eField, ∇B, xCoords, yCoords, zCoords, numdims)
+        domain = [xCoords[1] xCoords[length(xCoords)]
+                  yCoords[1] yCoords[length(yCoords)]
+                  zCoords[1] zCoords[length(zCoords)]]
+        numdims = 3
+        return new(bField, eField, ∇B, 
+                   xCoords, yCoords, zCoords, 
+                   domain, numdims)
     end # constructor
 
     function Mesh(bField ::Array{wpFloat, 4},
@@ -51,11 +57,17 @@ struct Mesh
                   yCoords::Vector{wpFloat},
                   zCoords::Vector{wpFloat}
                   )
+        domain = [xCoords[1] xCoords[length(xCoords)]
+                  yCoords[1] yCoords[length(yCoords)]
+                  zCoords[1] zCoords[length(zCoords)]]
+        numdims = 3
         ∇B = compute∇B(bField, 
                        xCoords,
                        yCoords,
                        zCoords)
-        return new(bField, eField, ∇B, xCoords, yCoords, zCoords, 4)
+        return new(bField, eField, ∇B, 
+                   xCoords, yCoords, zCoords, 
+                   domain, numdims)
     end # constructor
 
     function Mesh(bField ::Array{wpFloat, 4},
@@ -64,12 +76,17 @@ struct Mesh
         xCoords = collect(LinRange(0,1, size(bField)[2]))
         yCoords = collect(LinRange(0,1, size(bField)[3]))
         zCoords = collect(LinRange(0,1, size(bField)[4]))
+        domain = [xCoords[1] xCoords[length(xCoords)]
+                  yCoords[1] yCoords[length(yCoords)]
+                  zCoords[1] zCoords[length(zCoords)]]
         ∇B = compute∇B(bField, 
                        xCoords,
                        yCoords,
                        zCoords)
-        numdims = 4
-        return new(bField, eField, ∇B, xCoords, yCoords, zCoords, numdims)
+        numdims = 3
+        return new(bField, eField, ∇B, 
+                   xCoords, yCoords, zCoords, 
+                   domain, numdims)
     end # constructor
 
     function Mesh(bField ::Array{wpFloat, 3},
@@ -80,7 +97,7 @@ struct Mesh
         dx = xCoords[2] - xCoords[1]
         dy = yCoords[2] - yCoords[1]
         ∇B = ∇(bField, dx, dy, derivate4thOrder) # Won't work. need norm3
-        numdims = 3
+        numdims = 2
         return new(bField, eField, ∇B, xCoords, yCoords, numdims)
     end # constructor 
 
@@ -90,7 +107,7 @@ struct Mesh
         xCoords = LinRange(0,1, size(bField)[2])
         dx = xCoords[2] - xCoords[1]
         ∇B = derivateCentral(bField, dx, (1,0,0)) # Won't work. need norm2
-        numdims = 2
+        numdims = 1
         return new(bField, eField, ∇B, xCoords, numdims)
     end # constructor 
 end # Struct

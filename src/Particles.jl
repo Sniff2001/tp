@@ -33,6 +33,7 @@ mutable struct ParticleSoA
     pos    ::Array{wpFloat, 3}
     vel    ::Array{wpFloat, 3}
     species::Vector{wpInt}   # Particle specie identifier (e.g. electron, proton)
+    alive  ::Vector{Bool}
     
     
     # Constructors
@@ -55,7 +56,8 @@ mutable struct ParticleSoA
         velocities = zeros(wpFloat, numVels, numParticles, numSteps + 1)
         positions[:, :, 1] .= pos
         velocities[:, :, 1] .= vel
-        return new(positions, velocities, species)
+        alive = ones(Bool, numParticles)
+        return new(positions, velocities, species, alive)
     end # constructor 
 end # mutable struct ParticleSoA
 

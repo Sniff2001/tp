@@ -26,6 +26,15 @@ export setinitpos! # Sets the initial position of particles
 export setinitvel! # Sets the initial velocity of particles
 export kineticenergy # Computes the non-rel. kinetic energy at all time steps
 
+#------------------#
+# Global variables #
+#------------------#------------------------------------------------------------
+#              mass charge
+specieTable = [m_e  -e     # Electron
+               m_p   e     # Proton
+               1.0 3.0     # Unit mass and charge = 3
+               1.0 1.0]    # Unit mass and charge
+
 #-------------#   
 # Structs     # 
 #-------------#-----------------------------------------------------------------
@@ -110,12 +119,5 @@ function kineticenergy(particles::ParticleSoA)
     return Ek
 end # function kineticenergy
 
-#------------------#
-# Global variables #
-#------------------#------------------------------------------------------------
-#              mass charge
-specieTable = [m_e  -e     # Electron
-               m_p   e     # Proton
-               1.0 3.0     # Unit mass and charge = 3
-               1.0 1.0]    # Unit mass and charge
+
 end # module particles

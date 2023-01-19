@@ -16,6 +16,7 @@ module Utilities
 using LinearAlgebra:    norm
 # Internal libraries
 using WorkingPrecision: wpFloat, wpInt
+using Constants:        k_B
 
 
 #----------------#
@@ -164,6 +165,10 @@ function normal3Donlyz((x0, y0, z0)::Tuple{wpFloat, wpFloat, wpFloat},
     return (xx, yy, zz), (dx, dy, dz), A
 end # function normal3donlyz
 
+
+#-------------------------#
+# Particle initialisation #
+#-------------------------------------------------------------------------------
 function initparticlesuniform(
     numparticles::wpInt,
     pos0        ::Vector{wpFloat}, 
@@ -180,5 +185,58 @@ function initparticlesuniform(
     velocities = vel0 .+ (velocityrange .* r[4:2numdims, :])
     return positions, velocities
 end # function initparticlesuniform
+
+
+function initparticlesmaxwellian(
+    numparticles::wpInt,
+    pos0        ::Vector{wpFloat}, 
+    posf        ::Vector{wpFloat}, 
+    temperature ::wpFloat, # temperature of the Maxwellian distribution
+    mass        ::wpFloat  # mass of particles
+    )
+    numdims = 3
+    #
+    # Velocities
+    σ = √(k_B*temperature/mass) # Standard deviation of velocity
+    # components 
+    μ = 0.0 # Expectation-value of velocity distributions. 
+    # Generate velocities from a normal distribution
+    velocities = μ .+ σ .* randn(wpFloat, (numdims, numparticles))
+    #
+    # Posistions: Generate from a uniform distribution
+    spatialextent = posf .- pos0
+    positions = pos0 .+ 
+        (spatialextent .* rand(wpFloat, (numdims, numparticles)))
+    #
+    return positions, velocities
+end # function initparticlesmaxwellian
+
+
+function initparticlesmaxwellianx(
+    numparticles::wpInt,
+    pos0        ::Vector{wpFloat}, 
+    posf        ::Vector{wpFloat}, 
+    temperature ::wpFloat, # temperature of the Maxwellian distribution
+    mass        ::wpFloat  # mass of particles
+    )
+    #
+    numdims = 3
+    # Velocities
+    σ = √(k_B*temperature/mass) # Standard deviation of velocity
+    # components 
+    μ = 0.0 # Expectation-value of velocity distributions. 
+    # Generate velocities from a normal distribution
+    velocitiesx = μ .+ σ .* randn(wpFloat, (numparticles))
+    velocities = zeros(numdims, numparticles)
+    velocities[1, :] = velocitiesx
+    #
+    # Posistions: Generate from a uniform distribution
+    spatialextent = posf .- pos0
+    positions = pos0 .+ 
+        (spatialextent .* rand(wpFloat, (numdims, numparticles)))
+    #
+    return positions, velocities
+end # function initparticlesmaxwellian
+
 
 end # module utilities

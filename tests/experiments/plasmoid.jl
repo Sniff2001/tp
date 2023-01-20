@@ -15,12 +15,12 @@
 #import Pkg; Pkg.add("PyPlot")
 #ENV["PYTHON"]="python"
 #Pkg.build("PyCall")
-using PyPlot
 #using Plots; pythonplot()
 using LinearAlgebra
 
 # Import internal modules from tp/src
 using WorkingPrecision: wpFloat, wpInt
+using Constants:        k_B
 using Meshes
 using Patches
 using Particles
@@ -80,18 +80,18 @@ Ez = 0.0
 #-------------------------------------------------------------------------------
 # PARTICLE CONDITIONS
 #
-numparticles = 20  # Number of particles to simulate
+numparticles = 10  # Number of particles to simulate
 species = 4*ones(wpInt, numparticles)  # Specifies the species of the particles 
 # Set initial position and velocities
 # Initial velocity
 vel0 = [0.5, 0.0, 0.0]
 velf = [0.5, 0.0, 0.0]
 # Initial position span
-pos0 = [x0, y0, z0]
-posf = [x0, yf, z0]
+pos0 = [0.25, y0, z0]
+posf = [0.75, yf, z0]
 # Experiment conditions 
 dt = 0.0001
-tf = 2.0
+tf = 3.0
 numSteps = trunc(wpInt, tf/dt)   # Number of timesteps in the simulation
 times = collect(0:dt:tf)
 l = length(times)
@@ -110,12 +110,12 @@ mesh = Mesh(B, E, xx, yy, zz)
 #-------------------------------------------------------------------------------
 # PARTICLE CREATION
 # Set initial position and velocities
-#pos = zeros(wpFloat, numdims, numParticles) # Position -> origin
-#vel = zeros(wpFloat, numdims, numParticles) # Velocity
-#vel[:, 1] = [vx0, vy0, vz0]  # Initial velocity electron
-#pos[:, 1] = [posx0, posy0, posz0]  # Initial position electron
 
+T = 1/(2k_B)
+mass = specieTable[species[1], 1]
+println("Temperature = $T")
 pos, vel = Utilities.initparticlesuniform(numparticles, pos0, posf, vel0, velf)
+#pos, vel = Utilities.initparticlesmaxwellianx(numparticles, pos0, posf, T, mass)
 # Create ParticlesSoA-instance
 particles = ParticleSoA(pos, vel, species, numSteps)
 
@@ -129,11 +129,12 @@ patch = Patch(mesh,
               Interpolations.trilinear,
               dt,
               numSteps,
-              numparticles)
+              numparticles,
+              (true, true, true))
 
 #-------------------------------------------------------------------------------
 # RUN SIMULATION
-Patches.run!(patch)
+@time Patches.run!(patch)
 
 #-------------------------------------------------------------------------------
 # CALCULATE ENERGY
@@ -141,30 +142,20 @@ Ek = kineticenergy(particles)
 
 #-------------------------------------------------------------------------------
 # PLOT RESULTS
-for i = 1:numparticles
-    plot(times, Ek[i, :])
-end
-title("Kinetic energy")
-xlabel("Time, s")
-ylabel("Energy, J")
+using TPplots
+plotplasmoid(patch.tp.pos,
+             patch.tp.vel,
+             times,
+             Ek,
+             xx, yy, zz,
+             B,
+             numparticles
+             )
+numbins = 10
+plotenergydistr(patch.tp, 1, numbins)
+plotenergydistr(patch.tp, numSteps+1, numbins)
+plotenergydistr(patch.tp.vel[1, :, 1], numbins)
 
-figure()
-streamplot(xx, yy, transpose(B[1,:,:,1]), transpose(B[2,:,:,1]))
-for i = 1:numparticles
-    plot(patch.tp.pos[1,i,1], patch.tp.pos[2,i,1], marker="o")
-end
-quiver(patch.tp.pos[1, :, 1], patch.tp.pos[2, :, 1],
-       patch.tp.vel[1, :, 1], patch.tp.vel[2, :, 1],
-       width=0.003)
-title("Initial positions")
-
-figure()
-streamplot(xx, yy, transpose(B[1,:,:,1]), transpose(B[2,:,:,1]))
-for i = 1:numparticles
-    scatter(patch.tp.pos[1,i,:], patch.tp.pos[2,i,:],
-            s=0.1, marker=".")
-end
-title("Particle trajectories")
 
 
 

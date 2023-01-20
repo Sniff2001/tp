@@ -44,10 +44,29 @@ function fullOrbit(pos         ::Vector{wpFloat},
     B = fields[1]
     E = fields[2]
     #
-    a = q/m * (E + v × B) # Accelration by the Lorentz force
-    newPos, newVel = scheme(pos, v, a, dt)
-    return newPos, newVel
+    statevector = [pos; v]
+    statevectorNext = scheme(statevector,
+                             dt, 
+                             eomLorentzforce,
+                             B, E, q, m)
+    return statevectorNext[1:3], statevectorNext[4:6]
 end # funcion fullOrbit
+
+
+function eomLorentzforce(
+    s::Vector{wpFloat}, # The state vector
+    B::Vector{wpFloat}, # The magnetic field
+    E::Vector{wpFloat}, # The electric field
+    q::wpFloat,         # Charge
+    m::wpFloat          # Mass
+    )
+    x = s[1:3] # The position vector
+    v = s[4:6] # The velocity vector
+    dvdt = q/m * (E + v × B) 
+    dxdt = v
+    dsdt = [dxdt; dvdt]
+    return dsdt
+end # function lorentzforce
 
 
 function relFullOrbitExplLeapFrog(pos         ::Vector{wpFloat},

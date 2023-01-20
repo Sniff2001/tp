@@ -48,13 +48,6 @@ function eulerCromer(pos::Vector{wpFloat},
     nextPos = @. pos + nextVel * dt
     return nextPos, nextVel
 end # function eulerCromer
-function eulerCromer(vel::wpFloat,
-                     acc::wpFloat,
-                     dt ::wpFloat
-                     )
-    nextVel = @. vel + acc * dt
-    return nextVel
-end # function eulerCromer
 
 
 function positionHalfStep(pos::Vector{wpFloat},
@@ -64,6 +57,53 @@ function positionHalfStep(pos::Vector{wpFloat},
     return pos + 0.5dt*vel
 end # function positionHalfStep
 
+
+function euler( # rk1
+    yn     ::Vector{wpFloat}, # 'y' at time step 'n'
+    h      ::wpFloat,         # The time step
+    f      ::Function,        # the time derivative of 'y'
+    args...                   # Variable number of arguments to pass to 'f'.
+    )
+    k1 = f(yn, args...)
+    return yn + h*k1
+end # function euler
+#|
+function euler( # rk1
+    yn     ::Vector{wpFloat}, # 'y' at time step 'n'
+    h      ::wpFloat,         # The time step
+    f      ::Vector{wpFloat}, # The  time derivative of 'y'
+    )
+    return yn + h*f
+end # function euler
+
+
+function eulerCromer( # Semi-implicit
+    yn     ::Vector{wpFloat}, # 'y' at time step 'n'
+    h      ::wpFloat,         # The time step
+    f      ::Function,        # the time derivative of 'y'
+    args...                   # Variable number of arguments to pass to 'f'.
+    )
+    numdims = trunc(wpInt, length(yn)/2)
+    # Advance velocity using Euler
+    svNext = euler(yn, h, f, args...)
+    velNext = svNext[numdims+1:2numdims]
+    # Advance position using updated velocity
+    posNext = euler(yn[1:numdims], h, velNext)
+    return [posNext; velNext]
+end # function eulerCromer
+
+function rk4(
+    yn     ::Vector{wpFloat}, # 'y' at time step 'n'
+    h      ::wpFloat,         # The time step
+    f      ::Function,        # the time derivative of 'y'
+    args...                   # Variable number of arguments to pass to 'f'.
+    )
+    k1 = f(yn         , args...)
+    k2 = f(yn + h*k1/2, args...)
+    k3 = f(yn + h*k2/2, args...)
+    k4 = f(yn + h*k3  , args...)
+    return yn + h/6*(k1 + 2k2 + 2k3 + k4)
+end # function rk4
 
 """
     vay(pos, vel, specie, bField, eField, dt, scheme)

@@ -18,6 +18,8 @@ using LinearAlgebra:    norm
 using WorkingPrecision: wpFloat, wpInt
 using Constants:        k_B
 
+export randn
+
 
 #----------------#
 # Linear albebra #
@@ -129,6 +131,53 @@ function normaldistr(
     )
     return @.  1/(σ*√(2π))*exp(-0.5((x - μ)/σ)^2)
 end # normaldistr
+
+#------------------#
+# Random variables #
+#-------------------------------------------------------------------------------
+"""
+    Base.randn(μ, σ, dims)
+Method which return random variables from a normal distribution with 
+expectation value `μ` and standard deviation `σ`.
+"""
+function Base.randn(
+    μ   ::wpFloat,
+    σ   ::wpFloat,
+    dims::Tuple{Vararg{Int}}
+    )
+    return μ .+ σ.*randn(wpFloat, dims)
+end # function randn
+#|
+function Base.randn(
+    μ   ::wpFloat,
+    σ   ::wpFloat,
+    dims...
+    )
+    return μ .+ σ.*randn(wpFloat, dims)
+end # function randn
+
+
+"""
+    Base.rand(a, b, dims)
+Method which return random variables from a uniform distribution on the interval
+[a, b].
+"""
+function Base.rand(
+    a   ::wpFloat,
+    b   ::wpFloat,
+    dims::Tuple{Vararg{Int}}
+    )
+    return a .+ rand(wpFloat, dims) .* (b - a)
+end # function rand
+#|
+function Base.rand(
+    a   ::wpFloat,
+    b   ::wpFloat,
+    dims...
+    )
+    return a .+ rand(wpFloat, dims) .* (b - a)
+end # function rand
+
 
 #------------------------------#
 # Vector potential generation  #

@@ -110,8 +110,24 @@ end # function norm4
 #----------------#
 # Distributions  #
 #----------------#--------------------------------------------------------------
-function normaldistr(x, μ=0, σ=√2)
-    return @.  1/(σ*√2π)*exp(-0.5((x-μ)/σ)^2)
+"""
+    normaldistr(
+        x::Vector{wpFloat},
+        μ::wpFloat,
+        σ::wpFloat
+        )
+
+Function returning the values of `x` on a normalised normal distribution with
+expectation value `μ` and standard deviation `σ`.
+
+See also [`Utilities.uniformdistr`](@ref).
+"""
+function normaldistr(
+    x::Vector{wpFloat},
+    μ::wpFloat,
+    σ::wpFloat
+    )
+    return @.  1/(σ*√(2π))*exp(-0.5((x - μ)/σ)^2)
 end # normaldistr
 
 #------------------------------#

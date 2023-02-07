@@ -132,6 +132,30 @@ function normaldistr(
     return @.  1/(σ*√(2π))*exp(-0.5((x - μ)/σ)^2)
 end # normaldistr
 
+
+"""
+    uniformdistr(
+        x::Vector{wpFloat},
+        a::wpFloat,
+        b::wpFloat
+        )
+Function returning the values of `x` on a normalised unifrom distribution on the
+interval [`a, `b`].
+
+See also [`Utilities.normaldistr`](@ref).
+"""
+function uniformdistr(
+    x::Vector{wpFloat},
+    a::wpFloat,
+    b::wpFloat
+    )
+    mask = a .<= x .<= b
+    stepheight = 1.0/(b - a)
+    prob = zeros(size(x))
+    prob[mask] .= stepheight
+    return prob
+end # function uniformdistr
+
 #------------------#
 # Random variables #
 #-------------------------------------------------------------------------------
@@ -177,6 +201,28 @@ function Base.rand(
     )
     return a .+ rand(wpFloat, dims) .* (b - a)
 end # function rand
+
+
+"""
+    importancesampling(
+        target  ::Function, 
+        proposal::Function, 
+        randgen ::Function, 
+        N       ::wpInt,    
+        )
+Sample `N` points from the `proposal`-distribution and compute the importance
+weights with respect to the `target`-distribution.
+"""
+function importancesampling(
+    target  ::Function, # Target distribution
+    proposal::Function, # Proposal distruv
+    randgen ::Function, # Random variable generator. Following proposal pdf.
+    N       ::wpInt,    # Number of samples
+    )
+    samples = randgen(N)
+    weights = target(samples) ./ proposal(samples)
+    return samples, weights
+end # function importancesampling
 
 
 #------------------------------#

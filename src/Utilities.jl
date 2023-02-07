@@ -119,13 +119,13 @@ end # function norm4
         σ::wpFloat
         )
 
-Function returning the values of `x` on a normalised normal distribution with
+Function returning the values of `x` on a 1D normalised normal distribution with
 expectation value `μ` and standard deviation `σ`.
 
 See also [`Utilities.uniformdistr`](@ref).
 """
 function normaldistr(
-    x::Vector{wpFloat},
+    x::Array{wpFloat},
     μ::wpFloat,
     σ::wpFloat
     )
@@ -139,13 +139,13 @@ end # normaldistr
         a::wpFloat,
         b::wpFloat
         )
-Function returning the values of `x` on a normalised unifrom distribution on the
-interval [`a, `b`].
+Function returning the values of `x` on a 1D normalised unifrom distribution on
+the interval [`a, `b`].
 
 See also [`Utilities.normaldistr`](@ref).
 """
 function uniformdistr(
-    x::Vector{wpFloat},
+    x::Array{wpFloat},
     a::wpFloat,
     b::wpFloat
     )
@@ -217,9 +217,9 @@ function importancesampling(
     target  ::Function, # Target distribution
     proposal::Function, # Proposal distruv
     randgen ::Function, # Random variable generator. Following proposal pdf.
-    N       ::wpInt,    # Number of samples
+    dims    ::Tuple{Vararg{wpInt}}, # Number of samples
     )
-    samples = randgen(N)
+    samples = randgen(dims)
     weights = target(samples) ./ proposal(samples)
     return samples, weights
 end # function importancesampling
@@ -349,5 +349,57 @@ function initparticlesmaxwellianx(
     return positions, velocities
 end # function initparticlesmaxwellian
 
+
+""" 
+    initparticlesimsam(
+        proposal    ::Function,
+        randgen     ::Function,
+        numparticles::wpInt,
+        pos0        ::Vector{wpFloat}, 
+        posf        ::Vector{wpFloat}, 
+        temperature ::wpFloat, # temperature of the Maxwellian distribution
+        mass        ::wpFloat  # mass of particles
+        )
+Initialise particle position and velocity using importance sampling of the
+Maxwellian velocity.
+
+The position of the `numparticles` particles is uniformly distributed in the
+domain defined by `pos0` and `posf`.
+
+The the three velocity components are sampled from the `proposal` distribution
+using `randgen` and given an importance weight according to the corresponding
+probability in appropriate normal-distribution (defined by `temperature` and
+particle `mass).
+"""
+function initparticlesimsam(
+    proposal    ::Function,
+    randgen     ::Function,
+    numparticles::wpInt,
+    pos0        ::Vector{wpFloat}, 
+    posf        ::Vector{wpFloat}, 
+    temperature ::wpFloat, # temperature of the Maxwellian distribution
+    mass        ::wpFloat  # mass of particles
+    )
+    #
+    numdims = 3
+    # Velocities
+    σ = √(k_B*temperature/mass) # Standard deviation of velocity
+    # components 
+    μ = 0.0 # Expectation-value of velocity distributions. 
+    #  Define target distribution
+    targetdistr(v) = normaldistr(v, μ, σ)
+    N = (numdims, numparticles)
+    velocities, weights = importancesampling(targetdistr,
+                                             proposal,
+                                             randgen,
+                                             N)
+    #
+    # Posistions: Generate from a uniform distribution
+    spatialextent = posf .- pos0
+    positions = pos0 .+ 
+        (spatialextent .* rand(wpFloat, (numdims, numparticles)))
+    #
+    return positions, velocities, weights
+end # function initparticlesmaxwellian
 
 end # module utilities

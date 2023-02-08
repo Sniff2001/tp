@@ -402,13 +402,14 @@ function initparticlesimsam(
                                              proposal,
                                              randgen,
                                              N)
+    totweight = @. weights[1,:] * weights[2,:] * weights[3,:]
     #
     # Posistions: Generate from a uniform distribution
     spatialextent = posf .- pos0
     positions = pos0 .+ 
         (spatialextent .* rand(wpFloat, (numdims, numparticles)))
     #
-    return positions, velocities, weights
+    return positions, velocities, weights, totweight
 end # function initparticlesmaxwellian
 
 end # module utilities

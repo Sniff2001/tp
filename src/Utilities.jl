@@ -25,7 +25,7 @@ export randn
 # Linear albebra #
 #----------------#--------------------------------------------------------------
 """
-    norm2(field, axis)
+    norm2(field, axis=1)
 Calculates the p=2 norm of the vectors in a 1D vector field, i.e. the field
 strength. The argument 'axis' determines whether the vector components are
 stored in the first or second dimension of the array storing the field.
@@ -156,6 +156,15 @@ function uniformdistr(
     return prob
 end # function uniformdistr
 
+
+function maxwellBoltzmanndistr(
+    v          ::Array{wpFloat},
+    temperature::wpFloat,
+    mass       ::wpFloat
+    )
+    σ = √(k_B*temperature/mass) # Standard deviation of velocity
+    return @.  (1/(2π))^(3/2) *σ^(-3) * exp(-0.5(v/σ)^2) * 4π*v^2
+end # normaldistr
 #------------------#
 # Random variables #
 #-------------------------------------------------------------------------------

@@ -26,14 +26,15 @@ using Schemes:          positionHalfStep
 Solves the Lorentz equation of motion using an arbitrary numerical scheme
 (defined by the argument `scheme`).
 """
-function fullOrbit(pos         ::Vector{wpFloat},
-                   v           ::Vector{wpFloat}, # velocity
-                   specie      ::wpInt,
-                   mesh        ::Mesh,
-                   dt          ::wpFloat,
-                   interpolator::Function,
-                   scheme      ::Function
-                   )
+function fullOrbit_interstaticfield(
+    pos         ::Vector{wpFloat},
+    v           ::Vector{wpFloat}, # velocity
+    specie      ::wpInt,
+    mesh        ::Mesh,
+    dt          ::wpFloat,
+    interpolator::Function,
+    scheme      ::Function
+    )
     # Extract particle mass and charge
     m = specieTable[specie, 1]
     q = specieTable[specie, 2]
@@ -50,6 +51,7 @@ function fullOrbit(pos         ::Vector{wpFloat},
                              eomLorentzforce,
                              B, E, q, m)
     return statevectorNext[1:3], statevectorNext[4:6]
+end # funcion fullOrbit_interstaticfield
 end # funcion fullOrbit
 
 

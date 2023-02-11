@@ -14,27 +14,81 @@ module Interpolations
 using WorkingPrecision: wpFloat, wpInt
 using Meshes
 
+export grid
 export locateCell
 export trilinear
 
-function grid(mesh        ::Mesh,
-              interpolator::Function,
-              pos         ::Vector{wpFloat}
-              )
+
+#-----------------------#
+# Type of interpolation #
+#-------------------------------------------------------------------------------
+function grid(
+    vectorfield ::Array{wpFloat, 4},
+    interpolator::Function,
+    pos         ::Vector{wpFloat},
+    xx          ::Vector{wpFloat},
+    yy          ::Vector{wpFloat},
+    zz          ::Vector{wpFloat}
+    )
+    numDims = 3
+    x, y, z = pos
+    # Find which cell the position is in, and store the indices of its corner.
+    i = locateCell(xx, x)
+    j = locateCell(yy, y)
+    k = locateCell(zz, z)
+    interpolatedfield = interpolator(
+        vectorfield,
+        xx, yy, zz,
+        (i,j,k),
+        (x,y,z)
+    )
+    return interpolatedfield, i, j, k
+end # function grid
+#|
+function grid(
+    scalarfield ::Array{wpFloat, 3},
+    interpolator::Function,
+    pos         ::Vector{wpFloat},
+    xx          ::Vector{wpFloat},
+    yy          ::Vector{wpFloat},
+    zz          ::Vector{wpFloat}
+    )
+    numDims = 3
+    x, y, z = pos
+    # Find which cell the position is in, and store the indices of its corner.
+    i = locateCell(xx, x)
+    j = locateCell(yy, y)
+    k = locateCell(zz, z)
+    interpolatedfield = interpolator(
+        scalarfield,
+        xx, yy, zz,
+        (i,j,k),
+        (x,y,z)
+    )
+    return interpolatedfield, i, j, k
+end # function grid
+#|
+function grid(
+    mesh        ::Mesh,
+    interpolator::Function,
+    pos         ::Vector{wpFloat}
+    )
     numDims = 3
     x, y, z = pos
     # Find which cell the position is in, and store the indices of its corner.
     i = locateCell(mesh.xCoords, x)
     j = locateCell(mesh.yCoords, y)
     k = locateCell(mesh.zCoords, z)
-
-    fields = interpolator(mesh, (i,j,k), (x,y,z))
-    
-    return fields, i, j, k
-
+    # Interpolate
+    interpolatedfields = interpolator(mesh, (i,j,k), (x,y,z))
+    return interpolatedfields, i, j, k
 end # function grid
 
 
+
+#-----------#
+# Utilities #
+#-------------------------------------------------------------------------------
 """
     locateCell(coords, point)
 
@@ -62,51 +116,95 @@ function locateCell(coords::Vector{wpFloat},
 end # function locateCell
 
 
-function trilinear(mesh   ::Mesh,
-                   (i,j,k)::Tuple{wpInt, wpInt, wpInt},
-                   (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
-                   )
-    coefficients = trilinearCoefficients(mesh.xCoords,
+#---------------------#
+# Interpolation steps #
+#-------------------------------------------------------------------------------
+function trilinear( # Arbitrary vector-field
+    vectorfield::Array{wpFloat, 4},
+    xx         ::Vector{wpFloat},
+    yy         ::Vector{wpFloat},
+    zz         ::Vector{wpFloat},
+    (i,j,k)::Tuple{wpInt, wpInt, wpInt},
+    (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
+    )
+    coefficients = trilinearcoefficients(xx,
+                                         yy,
+                                         zz,
+                                         (i,j,k),
+                                         (x,y,z))
+    f = trilinearsum(vectorfield,
+                     (i,j,k),
+                     coefficients)
+    return f
+end # function trilinear
+#|
+function trilinear( # Arbitrary scalar-field
+    scalarfield::Array{wpFloat, 3},
+    xx         ::Vector{wpFloat},
+    yy         ::Vector{wpFloat},
+    zz         ::Vector{wpFloat},
+    (i,j,k)::Tuple{wpInt, wpInt, wpInt},
+    (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
+    )
+    coefficients = trilinearcoefficients(xx,
+                                         yy,
+                                         zz,
+                                         (i,j,k),
+                                         (x,y,z))
+    f = trilinearsum(scalarfield,
+                     (i,j,k),
+                     coefficients)
+    return f
+end # function trilinear
+#|
+function trilinear( # Method for passing the mesh-struct
+    mesh   ::Mesh,
+    (i,j,k)::Tuple{wpInt, wpInt, wpInt},
+    (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
+    )
+    coefficients = trilinearcoefficients(mesh.xCoords,
                                          mesh.yCoords,
                                          mesh.xCoords,
                                          (i,j,k),
                                          (x,y,z))
-    B = trilinearComputeField(mesh.bField,
+    B = trilinearsum(mesh.bField,
                               (i,j,k),
                               coefficients)
-    E = trilinearComputeField(mesh.eField,
+    E = trilinearsum(mesh.eField,
                               (i,j,k),
                               coefficients)
     return B, E
 end # function trilinear
 
-function trilinearGCA(mesh   ::Mesh,
-                      (i,j,k)::Tuple{wpInt, wpInt, wpInt},
-                      (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
-                      )
-    coefficients = trilinearCoefficients(mesh.xCoords,
+function trilinearGCA(
+    mesh   ::Mesh,
+    (i,j,k)::Tuple{wpInt, wpInt, wpInt},
+    (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
+    )
+    coefficients = trilinearcoefficients(mesh.xCoords,
                                          mesh.yCoords,
                                          mesh.xCoords,
                                          (i,j,k),
                                          (x,y,z))
-    B = trilinearComputeField(mesh.bField,
+    B = trilinearsum(mesh.bField,
                               (i,j,k),
                               coefficients)
-    E = trilinearComputeField(mesh.bField,
+    E = trilinearsum(mesh.bField,
                               (i,j,k),
                               coefficients)
-    ∇B = trilinearComputeField(mesh.∇B,
+    ∇B = trilinearsum(mesh.∇B,
                               (i,j,k),
                               coefficients)
     return B, E, ∇B
 end # function trilinearGCA
 
-function trilinearCoefficients(xCoords::Vector{wpFloat},
-                               yCoords::Vector{wpFloat},
-                               zCoords::Vector{wpFloat},
-                               (i,j,k)::Tuple{wpInt, wpInt, wpInt},
-                               (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
-                               )
+function trilinearcoefficients(
+    xCoords::Vector{wpFloat},
+    yCoords::Vector{wpFloat},
+    zCoords::Vector{wpFloat},
+    (i,j,k)::Tuple{wpInt, wpInt, wpInt},
+    (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
+    )
     t = (x - xCoords[i])/(xCoords[i + 1] - xCoords[i])
     u = (y - yCoords[j])/(yCoords[j + 1] - yCoords[j])
     v = (z - zCoords[k])/(zCoords[k + 1] - zCoords[k])
@@ -121,24 +219,43 @@ function trilinearCoefficients(xCoords::Vector{wpFloat},
     c7 = (1 - t)*u*v
     #
     return c0, c1, c2, c3, c4, c5, c6, c7
-end # function trinlinearCoefficients
+end # function trinlinearcoefficients
 
-#_
-function trilinearComputeField(field  ::Array{wpFloat, 4},
-                               (i,j,k)::Tuple{wpInt, wpInt, wpInt},
-                               c      ::NTuple{8, wpFloat}
-                               )
+function trilinearsum(
+    vectorfield::Array{wpFloat, 4},
+    (i,j,k)    ::Tuple{wpInt, wpInt, wpInt},
+    c          ::NTuple{8, wpFloat}
+    )
     c0, c1, c2, c3, c4, c5, c6, c7 = c
-    A0 = field[:,   i,   j,   k]
-    A1 = field[:, i+1,   j,   k]
-    A2 = field[:, i+1, j+1,   k]
-    A3 = field[:,   i, j+1,   k]
-    A4 = field[:,   i,   j, k+1]
-    A5 = field[:, i+1,   j, k+1]
-    A6 = field[:, i+1, j+1, k+1]
-    A7 = field[:,   i, j+1, k+1]
+    A0 = vectorfield[:,   i,   j,   k]
+    A1 = vectorfield[:, i+1,   j,   k]
+    A2 = vectorfield[:, i+1, j+1,   k]
+    A3 = vectorfield[:,   i, j+1,   k]
+    A4 = vectorfield[:,   i,   j, k+1]
+    A5 = vectorfield[:, i+1,   j, k+1]
+    A6 = vectorfield[:, i+1, j+1, k+1]
+    A7 = vectorfield[:,   i, j+1, k+1]
     A  = c0*A0 + c1*A1 + c2*A2 + c3*A3 + c4*A4 + c5*A5 + c6*A6 + c7*A7
     return A
-end # function trilinearComputeField
+end # function trilinearsum
+#|
+function trilinearsum(
+    scalarfield::Array{wpFloat, 3},
+    (i,j,k)    ::Tuple{wpInt, wpInt, wpInt},
+    c          ::NTuple{8, wpFloat}
+    )
+    c0, c1, c2, c3, c4, c5, c6, c7 = c
+    A0 = scalarfield[  i,   j,   k]
+    A1 = scalarfield[i+1,   j,   k]
+    A2 = scalarfield[i+1, j+1,   k]
+    A3 = scalarfield[  i, j+1,   k]
+    A4 = scalarfield[  i,   j, k+1]
+    A5 = scalarfield[i+1,   j, k+1]
+    A6 = scalarfield[i+1, j+1, k+1]
+    A7 = scalarfield[  i, j+1, k+1]
+    A  = c0*A0 + c1*A1 + c2*A2 + c3*A3 + c4*A4 + c5*A5 + c6*A6 + c7*A7
+    return A
+end # function trilinearsum
 
 end # module Interpolations
+

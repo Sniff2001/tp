@@ -290,7 +290,7 @@ According to given spatial domain, resolution, expectationvalue, standard
 deviation and amplitude, creates a vector field who's z-component is normally
 distributed in x and y according to the formula fz(i, j) = amplitude *
 fx(i)fy(j), where fx and fy are normal distributions in x, and y with
-expectation value and std equal to μx, μy, σx, σy, respectively. 
+expectation value and std equal to μx, μy, σx, σy, respetively. 
 """
 function normal3Donlyz((x0, y0, z0)::Tuple{wpFloat, wpFloat, wpFloat},
                        (xf, yf, zf)::Tuple{wpFloat, wpFloat, wpFloat},
@@ -317,10 +317,11 @@ function normal3Donlyz((x0, y0, z0)::Tuple{wpFloat, wpFloat, wpFloat},
     A = zeros(ndims, nx, ny, nz)
     # Evaluate the z-component of the vecor field to be normally distributed in
     # the x and y dimensions.
+    gaussx = normaldistr(xx, μx, σx)
+    gaussy = normaldistr(yy, μy, σy)
     for i = 1:nx
         for j = 1:ny
-            A[3,i,j,:] .= amplitude * 
-                normaldistr(xx[i], μx, σx) * normaldistr(yy[j], μy, σy)
+            A[3,i,j,:] .= amplitude * gaussx[i] * gaussy[j]
         end
     end
     return (xx, yy, zz), (dx, dy, dz), A

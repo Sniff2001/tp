@@ -14,6 +14,7 @@ module Utilities
 
 # Standard libraries
 using LinearAlgebra:    norm
+using Random:           MersenneTwister
 # Internal libraries
 using WorkingPrecision: wpFloat, wpInt
 using Constants:        k_B
@@ -337,11 +338,13 @@ function initparticlesuniform(
     posf        ::Vector{wpFloat}, 
     vel0        ::Vector{wpFloat}, 
     velf        ::Vector{wpFloat}, 
+    seed        ::wpInt=0  # random-seed
     )
     numdims = 3
     spatialextent = posf .- pos0
     velocityrange = velf .- vel0
-    r = rand(wpFloat, (2numdims, numparticles)) # 2 for both position and
+    r = rand(MersenneTwister(0),
+             wpFloat, (2numdims, numparticles)) # 2 for both position and
     # velocity 
     positions  = pos0 .+ (spatialextent .* r[1:numdims, :])
     velocities = vel0 .+ (velocityrange .* r[4:2numdims, :])
@@ -354,7 +357,8 @@ function initparticlesmaxwellian(
     pos0        ::Vector{wpFloat}, 
     posf        ::Vector{wpFloat}, 
     temperature ::wpFloat, # temperature of the Maxwellian distribution
-    mass        ::wpFloat  # mass of particles
+    mass        ::wpFloat, # mass of particles
+    seed        ::wpInt=0  # random-seed
     )
     numdims = 3
     #
@@ -363,12 +367,14 @@ function initparticlesmaxwellian(
     # components 
     μ = 0.0 # Expectation-value of velocity distributions. 
     # Generate velocities from a normal distribution
-    velocities = μ .+ σ .* randn(wpFloat, (numdims, numparticles))
+    velocities = μ .+ σ .* randn(MersenneTwister(seed),
+                                 wpFloat, (numdims, numparticles))
     #
     # Posistions: Generate from a uniform distribution
     spatialextent = posf .- pos0
     positions = pos0 .+ 
-        (spatialextent .* rand(wpFloat, (numdims, numparticles)))
+        (spatialextent .* rand(MersenneTwister(seed),
+                               wpFloat, (numdims, numparticles)))
     #
     return positions, velocities
 end # function initparticlesmaxwellian
@@ -379,7 +385,8 @@ function initparticlesmaxwellianx(
     pos0        ::Vector{wpFloat}, 
     posf        ::Vector{wpFloat}, 
     temperature ::wpFloat, # temperature of the Maxwellian distribution
-    mass        ::wpFloat  # mass of particles
+    mass        ::wpFloat, # mass of particles
+    seed        ::wpInt=0  # random-seed
     )
     #
     numdims = 3
@@ -388,14 +395,16 @@ function initparticlesmaxwellianx(
     # components 
     μ = 0.0 # Expectation-value of velocity distributions. 
     # Generate velocities from a normal distribution
-    velocitiesx = μ .+ σ .* randn(wpFloat, (numparticles))
+    velocitiesx = μ .+ σ .* randn(MersenneTwister(seed),
+                                  wpFloat, (numparticles))
     velocities = zeros(numdims, numparticles)
     velocities[1, :] = velocitiesx
     #
     # Posistions: Generate from a uniform distribution
     spatialextent = posf .- pos0
     positions = pos0 .+ 
-        (spatialextent .* rand(wpFloat, (numdims, numparticles)))
+        (spatialextent .* rand(MersenneTwister(seed),
+                               wpFloat, (numdims, numparticles)))
     #
     return positions, velocities
 end # function initparticlesmaxwellian

@@ -145,6 +145,8 @@ function plotplasmoid(pos,
                       B,
                       numparticles
                       )
+    # Energy plot
+    PyPlot.figure()
     for i = 1:numparticles
         PyPlot.plot(times, Ek[i, :])
     end
@@ -152,6 +154,7 @@ function plotplasmoid(pos,
     PyPlot.xlabel("Time, s")
     PyPlot.ylabel("Energy, J")
     
+    # Streamplot of magnetic field with initial positions and velocity
     PyPlot.figure()
     PyPlot.streamplot(xx, yy, transpose(B[1,:,:,1]), transpose(B[2,:,:,1]))
     for i = 1:numparticles
@@ -162,13 +165,41 @@ function plotplasmoid(pos,
            width=0.003)
     PyPlot.title("Initial positions")
     
+    # Streamplot of magnetic field with particle trajectories
     PyPlot.figure()
     PyPlot.streamplot(xx, yy, transpose(B[1,:,:,1]), transpose(B[2,:,:,1]))
+
+    cm = PyPlot.get_cmap(:tab20)
+    colorrange = (0:numparticles) ./ numparticles
+
     for i = 1:numparticles
-        PyPlot.scatter(pos[1,i,:], pos[2,i,:],
-                s=0.1, marker=".")
+        plotperiodictrajectory(pos[:,i,:], i, cm, colorrange)
     end
     PyPlot.title("Particle trajectories")
+
 end # function plotplasmoid
+
+
+function plotperiodictrajectory(pos, partidx, cm, colorrange)
+    extent = [1.0, 1.0, 1.0] # Hardcoded for now
+    posjumps = diff(pos, dims=2)
+    posjumps = @. abs(posjumps)
+    mask = @. isapprox(posjumps, extent, rtol=0.01)
+    indices = findall(mask[1:2, :])
+    numindices = length(indices)
+    if numindices > 0
+        j = 1
+        for s = 1:length(indices)
+            i = indices[s][2] # We only care about what time step the particle
+            # hit the boundary, not which boundary was crossed.
+            PyPlot.plot(pos[1,j:i], pos[2,j:i], color=cm(colorrange[partidx]))
+            j = i+1
+        end
+        PyPlot.plot(pos[1,j:end], pos[2,j:end], color=cm(colorrange[partidx]))
+    else
+        PyPlot.plot(pos[1,:], pos[2,:], color=cm(colorrange[partidx]))
+    end
+end 
+
 
 end # module TPplots

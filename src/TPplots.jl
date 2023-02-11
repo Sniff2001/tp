@@ -43,24 +43,24 @@ function quiverslice(mesh::Mesh,
                transpose(f[2, point, :, :]),
                transpose(f[3, point, :, :])
                )
-        xlabel("y")
-        ylabel("z")
+        PyPlot.xlabel("y")
+        PyPlot.ylabel("z")
     elseif normal == "y"
         PyPlot.quiver(mesh.xCoords,
                mesh.zCoords,
                transpose(f[1, :, point, :]),
                transpose(f[3, :, point, :])  
                )
-        xlabel("x")
-        ylabel("z")
+        PyPlot.xlabel("x")
+        PyPlot.ylabel("z")
     elseif normal == "z"
         PyPlot.quiver(mesh.xCoords,
                mesh.yCoords,
                transpose(f[1, :, :, point]),
                transpose(f[2, :, :, point])  
                )
-        xlabel("x")
-        ylabel("y")
+        PyPlot.xlabel("x")
+        PyPlot.ylabel("y")
     else
         println("Error: Plane not valid.")
     end

@@ -106,12 +106,43 @@ function eomLorentzforce(
                   x)
     B = fields[1]
     E = fields[2]
-    dvdt = q/m * (E + v × B) 
+    dvdt = q/m * (E + v × B)
     dxdt = v
     dsdt = [dxdt; dvdt]
     return dsdt
 end # function eomLorentzforce
 
+
+function fieldtracingforward(
+    statevector ::Vector{wpFloat}, # Should be just position
+    vectorfield ::Array{wpFloat, 4},
+    interpolator::Function,
+    xx          ::Vector{wpFloat},
+    yy          ::Vector{wpFloat},
+    zz          ::Vector{wpFloat}
+    )
+    interpfield, _ = grid(vectorfield, interpolator, statevector, xx, yy, zz)
+    fieldstrength = norm(interpfield)
+    fielddirection = interpfield ./ fieldstrength
+    dsdt = fielddirection
+    return dsdt
+end # function fieldtracing
+
+function fieldtracingbackward(
+    statevector ::Vector{wpFloat}, # Should be just position
+    vectorfield ::Array{wpFloat, 4},
+    interpolator::Function,
+    xx          ::Vector{wpFloat},
+    yy          ::Vector{wpFloat},
+    zz          ::Vector{wpFloat}
+    )
+    interpfield, _ = grid(vectorfield, interpolator, statevector, xx, yy, zz)
+    fieldstrength = norm(interpfield)
+    fielddirection = interpfield ./ fieldstrength
+    dsdt = -fielddirection
+    return dsdt
+end # function fieldtracing
+    
 
 function relFullOrbitExplLeapFrog(pos         ::Vector{wpFloat},
                                   vel         ::Vector{wpFloat}, 

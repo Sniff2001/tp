@@ -23,6 +23,6 @@ Use following tags for commit messages:
 
 Commit message examples:
 
-* "[BUG] Adds missing initialisation to tg array"
-* "[FIX] Adds lowercase castig to params"
-* "[CLN] Removes unnecessary allocation for dynamic arrays."
+* "[BUG] Add missing initialisation to tg array"
+* "[FIX] Add lowercase castig to params"
+* "[CLN] Remove unnecessary allocation for dynamic arrays."

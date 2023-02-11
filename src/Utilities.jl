@@ -246,6 +246,35 @@ function importancesampling(
 end # function importancesampling
 
 
+function rejectionsampling(
+    target    ::Function,
+    maxvalue  ::wpFloat,
+    numsamples::wpInt,
+    domain    ::Matrix{wpFloat}
+    )
+    numdims = size(domain)[1]
+    positions = zeros((numdims, numsamples))
+    accepted = 0
+    rejected = 0
+    while accepted < numsamples
+        pos     = rand(domain)
+        yguess  = rand(0.0, maxvalue)
+        ytarget = target(pos)[1] # Target should return a single float, but in
+        # case this float is in a 1-element Vector we specify the first index.
+        if yguess < ytarget
+            accepted += 1
+            positions[:,accepted] .= pos
+        else
+            rejected += 1
+        end
+    end
+    acceptencerate = accepted/rejected
+    if numdims == 1
+        return positions[1,:], acceptencerate
+    else
+        return positions, acceptencerate
+    end
+end # function rejection sampling
 #------------------------------#
 # Vector potential generation  #
 #-------------------------------------------------------------------------------

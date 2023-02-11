@@ -52,7 +52,27 @@ function fullOrbit_interstaticfield(
                              B, E, q, m)
     return statevectorNext[1:3], statevectorNext[4:6]
 end # funcion fullOrbit_interstaticfield
-end # funcion fullOrbit
+
+function fullOrbit(pos        ::Vector{wpFloat},
+                   v           ::Vector{wpFloat}, # velocity
+                   specie      ::wpInt,
+                   mesh        ::Mesh,
+                   dt          ::wpFloat,
+                   interpolator::Function,
+                   scheme      ::Function
+                   )
+    # Extract particle mass and charge
+    m = specieTable[specie, 1]
+    q = specieTable[specie, 2]
+    #
+    statevector = [pos; v]
+    statevectorNext = scheme(statevector,
+                             dt, 
+                             eomLorentzforce,
+                             q, m, mesh, interpolator,
+                             )
+    return statevectorNext[1:3], statevectorNext[4:6]
+end # function fullOrbit
 
 
 function eomLorentzforce(
@@ -68,7 +88,29 @@ function eomLorentzforce(
     dxdt = v
     dsdt = [dxdt; dvdt]
     return dsdt
-end # function lorentzforce
+end # function eomLorentzforce
+#|
+function eomLorentzforce(
+    statevector ::Vector{wpFloat}, # The state vector
+    q           ::wpFloat,         # Charge
+    m           ::wpFloat,         # Mass
+    mesh        ::Mesh,            # The mesh containing the magnetic field
+    interpolator::Function         # Interpolation function used for evaluating
+                                   #   the field at the stavector-location
+    )
+    x = statevector[1:mesh.numdims] # The position vector
+    v = statevector[mesh.numdims+1:2mesh.numdims] # The velocity vector
+    # Interpolate fields
+    fields, _ = grid(mesh,
+                  interpolator,
+                  x)
+    B = fields[1]
+    E = fields[2]
+    dvdt = q/m * (E + v × B) 
+    dxdt = v
+    dsdt = [dxdt; dvdt]
+    return dsdt
+end # function eomLorentzforce
 
 
 function relFullOrbitExplLeapFrog(pos         ::Vector{wpFloat},

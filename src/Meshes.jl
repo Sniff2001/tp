@@ -42,9 +42,9 @@ struct Mesh
                   yCoords::Vector{wpFloat},
                   zCoords::Vector{wpFloat}
                   )
-        domain = [xCoords[1] xCoords[length(xCoords)]
-                  yCoords[1] yCoords[length(yCoords)]
-                  zCoords[1] zCoords[length(zCoords)]]
+        domain = [xCoords[1] xCoords[end]
+                  yCoords[1] yCoords[end]
+                  zCoords[1] zCoords[end]]
         numdims = 3
         return new(bField, eField, ∇B, 
                    xCoords, yCoords, zCoords, 
@@ -76,9 +76,9 @@ struct Mesh
         xCoords = collect(LinRange(0,1, size(bField)[2]))
         yCoords = collect(LinRange(0,1, size(bField)[3]))
         zCoords = collect(LinRange(0,1, size(bField)[4]))
-        domain = [xCoords[1] xCoords[length(xCoords)]
-                  yCoords[1] yCoords[length(yCoords)]
-                  zCoords[1] zCoords[length(zCoords)]]
+        domain = [xCoords[1] xCoords[end]
+                  yCoords[1] yCoords[end]
+                  zCoords[1] zCoords[end]]
         ∇B = compute∇B(bField, 
                        xCoords,
                        yCoords,

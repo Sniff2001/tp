@@ -210,7 +210,19 @@ function Base.rand(
     )
     return a .+ rand(wpFloat, dims) .* (b - a)
 end # function rand
-
+#|
+function Base.rand(
+    domain::Matrix{wpFloat}
+    )
+    numaxes = size(domain)[1]
+    r = zeros(numaxes)
+    for i = 1:numaxes
+        a = domain[i,1]
+        b = domain[i,2]
+        r[i] = a .+ rand(wpFloat) .* (b - a)
+    end
+    return  r
+end # function rand
 
 """
     importancesampling(

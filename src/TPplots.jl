@@ -14,11 +14,15 @@ module TPplots
 # External libraries
 import Plots
 import PyPlot
+using LinearAlgebra:    norm
 # Internal libraries
 using WorkingPrecision: wpInt, wpFloat
 using Meshes
 using Particles
-using Utilities
+using Utilities:        rejectionsampling, norm4, norm2
+using Interpolations
+using Schemes
+using Solvers
 
 export plotenergydistr
 export plotplasmoid
@@ -201,5 +205,149 @@ function plotperiodictrajectory(pos, partidx, cm, colorrange)
     end
 end 
 
+
+function generatefieldline(
+    mesh,
+    initpos,
+    stepsize,
+    numsteps,
+    interpolator,
+    scheme
+    )
+
+    # Find out how many steps are needed in both directions
+#    pos = zeros(mesh.numdims)
+#    # Forward
+#    pos .= initpos
+#    stepsforward = -1
+#    # While the position is till in the domain
+#    while all(pos .>= mesh.domain[:, 1]) & all(pos .<= mesh.domain[:, 2])
+#        # Get magnetic field at position by interpolation
+#        fields, _ = grid(mesh, interpolator, pos)
+#        bfield, _ = fields
+#        # The movement should be dependent on the field direction, not the field
+#        # strength 
+#        B = norm(bfield) # field strength
+#        b = bfield/B     # unit vector pointing i the magnetic field direction
+#        @. pos = pos + b * stepsize
+#        stepsforward += 1
+#    end
+#    # Backward
+#    pos .= initpos
+#    stepsbackward = -1 # We don't want to step if the the fist step is out of
+#    # domain 
+#    while all(pos .>= mesh.domain[:, 1]) & all(pos .<= mesh.domain[:, 2])
+#        fields, _ = grid(mesh, interpolator, pos)
+#        bfield, _ = fields
+#        B = norm(bfield)
+#        b = bfield/B
+#        @. pos = pos - b * stepsize
+#        stepsbackward += 1
+#    end
+
+    # Store line
+    stepsforward = numsteps
+    stepsbackward = numsteps
+    lineforward  = zeros((mesh.numdims, stepsforward + 1))
+    linebackward = zeros((mesh.numdims, stepsbackward + 1))
+    lineforward[:, 1] .= initpos
+    linebackward[:, 1] .= initpos
+
+    # Follow field line forward
+    for i = 1:stepsforward
+        pos = lineforward[:, i]
+        fields, _ = grid(mesh, interpolator, pos)
+        bfield, _ = fields
+        B = norm(bfield)
+        b = bfield/B
+        #@. lineforward[:, i + 1] = lineforward[:, i] + b * stepsize
+        lineforward[:, i + 1] .= scheme(pos,
+                                        stepsize,
+                                        Solvers.fieldtracingforward,
+                                        mesh.bField,
+                                        interpolator,
+                                        mesh.xCoords,
+                                        mesh.yCoords,
+                                        mesh.zCoords
+                                        )
+    end
+    # Follow field line backward
+    for i = 1:stepsbackward
+        pos = linebackward[:, i]
+        fields, _ = grid(mesh, interpolator, pos)
+        bfield, _ = fields
+        B = norm(bfield)
+        b = bfield/B
+        #@. linebackward[:, i + 1] = linebackward[:, i] - b * stepsize
+        linebackward[:, i + 1] .= scheme(pos,
+                                        stepsize,
+                                        Solvers.fieldtracingbackward,
+                                        mesh.bField,
+                                        interpolator,
+                                        mesh.xCoords,
+                                        mesh.yCoords,
+                                        mesh.zCoords
+                                        )
+    end
+
+    # Fix points outside the domain
+    for i = 1:stepsforward
+        if any(lineforward[:,i] .< mesh.domain[:,1]) |
+            any(lineforward[:,i] .> mesh.domain[:,2])
+            lineforward[:, i:end] .= lineforward[:,i-1]
+            break
+        end
+    end
+    for i = 1:stepsbackward
+        if any(linebackward[:,i] .< mesh.domain[:,1]) |
+            any(linebackward[:,i] .> mesh.domain[:,2])
+            linebackward[:, i:end] .= linebackward[:,i-1]
+            break
+        end
+    end
+    
+    # Reverse linebackward and contatenate the lines
+    fieldline = [linebackward[:, end:-1:1];; lineforward]
+    return fieldline, lineforward, linebackward
+end 
+
+
+function plotfieldlines(mesh, numlines, stepsize, interpolator, scheme)
+    fieldstrength = norm4(mesh.bField)
+    maxfieldstrength = maximum(fieldstrength)
+    # Create a function which returns the field strength at a given position.
+    B(pos) = grid(fieldstrength,
+                  interpolator,
+                  pos,
+                  mesh.xCoords,
+                  mesh.yCoords,
+                  mesh.zCoords)
+    # Sample initial position for magnetic field lines based on the field
+    # strength 
+    positions, ratio = rejectionsampling(B,
+                                         maxfieldstrength,
+                                         numlines,
+                                         mesh.domain)
+    # Assumes the lines are no greater than twice the maximum domain extent.
+    maxextent = maximum(mesh.domain[:, 2] .- mesh.domain[:, 1]) 
+    numsteps = wpInt(2maxextent/stepsize)
+    lines = zeros((mesh.numdims, numlines, 2*numsteps+2))
+    for i = 1:numlines
+        l, _, _ = generatefieldline(mesh,
+                                    positions[:,i],
+                                    stepsize,
+                                    numsteps,
+                                    interpolator,
+                                    scheme
+                                    )
+        lines[:,i,:] .= l
+    end
+    PyPlot.figure()
+    PyPlot.plot(lines[1,1,:], lines[2,1,:], color="black", linewidth=0.5)
+    for i = 2:numlines
+        PyPlot.plot(lines[1,i,:], lines[2,i,:], color="black", linewidth=0.5)
+    end
+    return lines, positions
+end
 
 end # module TPplots

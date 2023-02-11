@@ -113,22 +113,26 @@ end # function streamplotslice
 #-------------------------------------------------------------------------------
 function plotenergydistr(particles::ParticleSoA, 
                          snap     ::wpInt,
-                         numbins  ::wpInt
+                         numbins  ::wpInt,
+                         title
                          )
-    absvel = Utilities.norm2(particles.vel[:, :, snap])
+    absvel = norm2(particles.vel[:, :, snap])
     binrange = range(minimum(absvel), maximum(absvel), length=numbins)
-    Plots.histogram!(absvel, bins=binrange)
+    Plots.histogram(absvel, bins=binrange)
     Plots.xlabel!("Absolute velocity, m/s")
     Plots.xlabel!("Number of particles")
+    Plots.title!(title)
 end # function plotenergydistr
 #
 function plotenergydistr(absvel ::Vector{wpFloat},
-                         numbins::wpInt
+                         numbins::wpInt,
+                         title
                          )
     binrange = range(minimum(absvel), maximum(absvel), length=numbins)
-    Plots.histogram!(absvel, bins=binrange)
+    Plots.histogram(absvel, bins=binrange)
     Plots.xlabel!("Absolute velocity, m/s")
     Plots.xlabel!("Number of particles")
+    Plots.title!(title)
 end # function plotenergydistr
 
 function plotplasmoid(pos,

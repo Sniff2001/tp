@@ -279,6 +279,27 @@ end # function rejection sampling
 #------------------------------#
 # Vector potential generation  #
 #-------------------------------------------------------------------------------
+function createaxes(
+    (x0, y0, z0)::Tuple{wpFloat, wpFloat, wpFloat},
+    (xf, yf, zf)::Tuple{wpFloat, wpFloat, wpFloat},
+    (nx, ny, nz)::Tuple{wpInt, wpInt, wpInt}
+    )
+    xx = collect(LinRange(x0, xf, nx))
+    dx = xx[2] - xx[1]
+    yy = collect(LinRange(y0, yf, ny))
+    dy = yy[2] - yy[1]
+    # Account for single point in the z-axis
+    if nz == 1
+        zz = [z0]
+        dz = 0.
+            else
+        zz = collect(LinRange(z0, zf, nz))
+        dz = zz[2] - zz[1]
+    end
+    return xx, yy, zz, dx, dy, dz
+end # function createaxes
+
+
 """
     normal3Donlyz((x0, y0, z0), 
                   (xf, yf, zf), 
@@ -293,26 +314,19 @@ distributed in x and y according to the formula fz(i, j) = amplitude *
 fx(i)fy(j), where fx and fy are normal distributions in x, and y with
 expectation value and std equal to μx, μy, σx, σy, respetively. 
 """
-function normal3Donlyz((x0, y0, z0)::Tuple{wpFloat, wpFloat, wpFloat},
-                       (xf, yf, zf)::Tuple{wpFloat, wpFloat, wpFloat},
-                       (nx, ny, nz)::Tuple{wpInt, wpInt, wpInt},
-                       (μx, μy)    ::Tuple{wpFloat, wpFloat},
-                       (σx, σy)    ::Tuple{wpFloat, wpFloat},
-                       amplitude   ::wpFloat
-                       )
+function normal3Donlyz(
+    (x0, y0, z0)::Tuple{wpFloat, wpFloat, wpFloat},
+    (xf, yf, zf)::Tuple{wpFloat, wpFloat, wpFloat},
+    (nx, ny, nz)::Tuple{wpInt, wpInt, wpInt},
+    (μx, μy)    ::Tuple{wpFloat, wpFloat},
+    (σx, σy)    ::Tuple{wpFloat, wpFloat},
+    amplitude   ::wpFloat=1.0
+    )
     # Create spatial axes and find the grid sizes
-    xx = collect(LinRange(x0, xf, nx))
-    dx = xx[2] - xx[1]
-    yy = collect(LinRange(y0, yf, ny))
-    dy = yy[2] - yy[1]
-    # Account for single point in the z-axis
-    if nz == 1
-        zz = [z0]
-        dz = 0.
-            else
-        zz = collect(LinRange(z0, zf, nz))
-        dz = zz[2] - zz[1]
-    end
+    xx, yy, zz, dx, dy, dz = createaxes((x0, y0, z0),
+                                        (xf, yf, zf),
+                                        (nx, ny, nz)
+                                        )
     # Initialise the vector field
     ndims = 3
     A = zeros(ndims, nx, ny, nz)
@@ -329,6 +343,30 @@ function normal3Donlyz((x0, y0, z0)::Tuple{wpFloat, wpFloat, wpFloat},
 end # function normal3donlyz
 
 
+function fadeevEquilibrium(
+    (x0, y0, z0)::Tuple{wpFloat, wpFloat, wpFloat},
+    (xf, yf, zf)::Tuple{wpFloat, wpFloat, wpFloat},
+    (nx, ny, nz)::Tuple{wpInt, wpInt, wpInt},
+    λ           ::wpFloat,
+    ϵ           ::wpFloat,
+    B0          ::wpFloat
+    )
+    # Create spatial axes and find the grid sizes
+    xx, yy, zz, dx, dy, dz = createaxes((x0, y0, z0),
+                                        (xf, yf, zf),
+                                        (nx, ny, nz)
+                                        )
+    # Initialise the vector field
+    ndims = 3
+    A = zeros(ndims, nx, ny, nz)
+    for i = 1:nx
+        for j = 1:ny
+            A[3,i,j,:] .= B0 * λ * log2( ϵ * cos(xx[i]/λ) + cosh(yy[j]/λ) )
+        end
+    end
+    return (xx, yy, zz), (dx, dy, dz), A
+    
+end # function FadeevEquilibrium
 #-------------------------#
 # Particle initialisation #
 #-------------------------------------------------------------------------------

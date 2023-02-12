@@ -18,14 +18,14 @@ using LinearAlgebra:    norm
 # Internal libraries
 using WorkingPrecision: wpInt, wpFloat
 using Meshes
+using Patches:          Patch
 using Particles
 using Utilities:        rejectionsampling, norm4, norm2
 using Interpolations
 using Schemes
 using Solvers
 
-export plotenergydistr
-export plotplasmoid
+export plot
 
 #------#
 # Mesh #
@@ -222,6 +222,38 @@ function plotperiodictrajectory(pos, partidx, cm, colorrange)
 end 
 
 
+#---------#
+# Patches #
+#-------------------------------------------------------------------------------
+function plot(
+    patch    ::Patch,
+    labelling::Bool=false
+    )
+    times = collect(range(0.0, step=patch.dt, length=patch.numSteps+1))
+    Ek = kineticenergy(patch.tp)
+    plotplasmoid(
+        patch.tp.pos,
+        patch.tp.vel,
+        times,
+        Ek,
+        patch.mesh.xCoords, patch.mesh.yCoords, patch.mesh.zCoords,
+        patch.mesh.bField,
+        patch.numParticles,
+        labelling
+    )
+
+    numbins = 20
+    p1 = plotenergydistr(patch.tp, 1, numbins, "Initial energy")
+    p2 = plotenergydistr(patch.tp, patch.numSteps+1, numbins, "final energy")
+    p3 = plotenergydistr(patch.tp.vel[1, :, 1], numbins, "Vx-initial")
+    p4 = plotenergydistr(patch.tp.vel[1, :, end], numbins, "Vx-final")
+    Plots.plot(p1,p2,p3, p4)
+end
+
+
+#---------#
+# Other   #
+#-------------------------------------------------------------------------------
 function generatefieldline(
     mesh,
     initpos,

@@ -20,7 +20,7 @@ using WorkingPrecision: wpFloat, wpInt
 using Constants:        k_B
 using Meshes:           Mesh
 using Patches:          Patch, run!
-using Particles:        ParticleSoA, kineticenergy, specieTable
+using Particles:        ParticleSoA, GCAParticleSoA, kineticenergy, specieTable
 using Solvers          
 using Schemes
 using Interpolations
@@ -74,7 +74,7 @@ xi0 = (0., 0., 0.)
 # Upper bound of the three spatial axes
 xif = (1., 1., 1.)
 # Grid resolution of the axes
-n = (10, 10, 2)
+n = (100, 100, 2)
  
 #...............................................
 # MAGNETIC FIELD PARAMETERS
@@ -95,9 +95,9 @@ Ez = 50.0
 
 #...............................................
 # SOLVER CONDITIONS
-solver = Solvers.fullOrbit # Physics solver
+solver = Solvers.GCA # Physics solver
 scheme = Schemes.rk4       # Scheme for integrating the diff eqs.
-interp = Interpolations.trilinear # Interpolation scheme
+interp = Interpolations.trilinearGCA # Interpolation scheme
 pbc    = (true, true, true) # (x,y,z) Are mesh boundary conditions periodic?
 #-------------------------------------------------------------------------------
 
@@ -114,15 +114,15 @@ pbc    = (true, true, true) # (x,y,z) Are mesh boundary conditions periodic?
 # Creating the vector potential also gives the axes of the experiment
 axes, gridsizes, A = Utilities.normal3Donlyz(xi0, xif, n, μ, σ)
 # Derive the magnetic field from the curl of the vector-potential
-B = Schemes.curl(A, gridsizes, Schemes.derivateCentral)
+Bfield = Schemes.curl(A, gridsizes, Schemes.derivateCentral)
 # Scale the field
-@. B = bamp*B + bconst
-@. B[3,:,:,:] = bz
+@. Bfield = bamp*Bfield + bconst
+@. Bfield[3,:,:,:] = bz
 # Create the electric field
-E = zeros(wpFloat, size(B))
-E[1, :, :, :] .= Ex
-E[2, :, :, :] .= Ey
-E[3, :, :, :] .= Ez
+Efield = zeros(wpFloat, size(Bfield))
+Efield[1, :, :, :] .= Ex
+Efield[2, :, :, :] .= Ey
+Efield[3, :, :, :] .= Ez
 
 #-------------------------------------------------------------------------------
 # SIMULATION DURATION
@@ -134,7 +134,7 @@ println("Number of time steps = $numSteps.")
 # MESH CREATION
 # Create Mesh instance
 xx, yy, zz = axes
-mesh = Mesh(B, E, xx, yy, zz)
+mesh = Mesh(Bfield, Efield, xx, yy, zz)
 
 #-------------------------------------------------------------------------------
 # PARTICLE CREATION
@@ -162,7 +162,32 @@ else
     println("Initial condition wrongly chosen.")
 end
 # Create ParticlesSoA-instance
-particles = ParticleSoA(pos, vel, species, numSteps)
+if solver == Solvers.GCA
+    R = pos
+    vparal = zeros(numparticles)
+    μ      = zeros(numparticles)
+    for i = 1:numparticles
+        m = specieTable[species[i], 1]
+        (B⃗, E⃗, ∇B), _ = grid(mesh,
+                           interp,
+                           R[:,i]
+                           )
+        B = norm(B⃗)
+        b̂ = B⃗/B
+        display(b̂)
+        v = norm(vel[:,i])
+        vparal[i] = vel[:,i] ⋅ b̂
+        vperp = √(v^2 - vparal[i]^2)
+        #vperp = Solvers.drift(b̂, E⃗, ∇B, B, μ, q)
+        println("v      for $i: $v")
+        println("vparal for $i: $vparal")
+        println("vperp  for $i: $vperp")
+        μ[i] = m*vperp^2/(2B)
+    end
+    particles = GCAParticleSoA(R, vparal, μ, species, numSteps)
+else
+    particles = ParticleSoA(pos, vel, species, numSteps)
+end
 
 #-------------------------------------------------------------------------------
 # CREATE PATCH

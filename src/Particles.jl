@@ -21,6 +21,7 @@ using Utilities: norm3
 #-------------#-----------------------------------------------------------------
 export TraceParticle
 export ParticleSoA # Particles represented as struct of arrays
+export GCAParticleSoA
 export specieTable # Maping specie to mass and charge
 export reset!      # Resets particle positions to zero (except initial position)
 export setinitpos! # Sets the initial position of particles
@@ -81,8 +82,42 @@ mutable struct ParticleSoA <: TraceParticle
 end # mutable struct ParticleSoA
 
 
-#----------------------#
-# Particle set-methods #
+mutable struct GCAParticleSoA <: TraceParticle
+    R      ::Array{wpFloat, 3} # The position of the guiding centre
+    vparal ::Matrix{wpFloat}   # The velocity parallel to the magnetic field
+    μ      ::Vector{wpFloat}   # Magnetic moment μ of particle
+    species::Vector{wpInt}     # Particle specie identifier (e.g. electron, proton)
+    alive  ::Vector{Bool}
+    weight ::Vector{wpFloat}
+    
+    
+    # Constructors
+    #--------------------------------------------------------------------------
+    """
+        GCAParticleSoA(R, vparal, μ, species, alive, weight)
+
+    One would normally only pass initial conditions. This constructor handles
+    the creation of the type accordingly, by adding the initial conditions to
+    an higher order array.
+    """
+    function GCAParticleSoA(
+        initR     ::Matrix{wpFloat},
+        initvparal::Vector{wpFloat},
+        μ         ::Vector{wpFloat},
+        species   ::Vector{wpInt},
+        numSteps  ::Integer
+        )
+        numDims, numParticles = size(initR)
+        R      = zeros(wpFloat, numDims, numParticles, numSteps + 1)
+        vparal = zeros(wpFloat, numParticles, numSteps + 1)
+        R[:, :, 1] .= initR
+        vparal[:, :, 1] .= initvparal
+        alive = ones(Bool, numParticles)
+        weight = ones(wpFloat, numParticles)
+        return new(R, vparal, μ, species, alive, weight)
+    end # constructor 
+end # mutable struct ParticleSoA
+
 #-------------------------------------------------------------------------------
 function reset!(particles::ParticleSoA)
     n = length(particles.pos[1,1,:])
@@ -119,8 +154,8 @@ end # function setinitvel
 # Auxiliary quantities #
 #-------------------------------------------------------------------------------
 function kineticenergy(particles::ParticleSoA)
-    _, npart, N = size(particles.pos) # Will fail for GCA-particles
-    v = norm3(particles.vel) # Will fail for GCA-particles
+    _, npart, N = size(particles.pos) 
+    v = norm3(particles.vel) 
     Ek = zeros(npart, N)
     for i = 1:npart
         mass = specieTable[particles.species[i], 1]
@@ -128,6 +163,16 @@ function kineticenergy(particles::ParticleSoA)
     end # loop i
     return Ek
 end # function kineticenergy
-
+#|
+function kineticenergy(particles::GCAParticleSoA)
+    npart, N = size(particles.vparal) 
+    v = particles.vparal
+    Ek = zeros(npart, N)
+    for i = 1:npart
+        mass = specieTable[particles.species[i], 1]
+        @. Ek[i,:] = 0.5*mass*v[i,:]^2
+    end # loop i
+    return Ek
+end # function kineticenergy
 
 end # module particles

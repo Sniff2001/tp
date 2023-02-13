@@ -29,7 +29,7 @@ export run
 #-------------#-----------------------------------------------------------------
 mutable struct Patch
     mesh        ::Mesh
-    tp          ::ParticleSoA # The trace particles
+    tp          ::TraceParticle # The trace particles
     solver      ::Function
     scheme      ::Function
     interpolator::Function
@@ -41,7 +41,7 @@ mutable struct Patch
     # Constructors
     #--------------------------------------------------------------------------
     function Patch(mesh        ::Mesh,
-                   tp          ::ParticleSoA, # The trace particles
+                   tp          ::TraceParticle, # The trace particles
                    solver      ::Function,
                    scheme      ::Function,
                    interpolator::Function,
@@ -62,7 +62,7 @@ mutable struct Patch
     end # constructor
 
     function Patch(mesh        ::Mesh,
-                   tp          ::ParticleSoA, # The trace particles
+                   tp          ::TraceParticle, # The trace particles
                    solver      ::Function,
                    scheme      ::Function,
                    interpolator::Function,

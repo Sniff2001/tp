@@ -189,7 +189,7 @@ function trilinearGCA(
     B = trilinearsum(mesh.bField,
                               (i,j,k),
                               coefficients)
-    E = trilinearsum(mesh.bField,
+    E = trilinearsum(mesh.eField,
                               (i,j,k),
                               coefficients)
     ∇B = trilinearsum(mesh.∇B,

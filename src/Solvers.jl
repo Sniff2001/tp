@@ -239,6 +239,81 @@ function GCA(pos         ::Vector{wpFloat},
     return posNext, velNext
 end # function GCA
 
+function GCA(
+    pos         ::Vector{wpFloat},
+    vel         ::wpFloat,
+    specie      ::wpInt,
+    mesh        ::Mesh,
+    dt          ::wpFloat,
+    interpolator::Function,
+    scheme      ::Function
+    )
+    # Extract particle mass and charge
+    m = specieTable[specie, 1]
+    q = specieTable[specie, 2]
+    μ = vel # Requires implementation
+    #
+    statevector = [pos;]
+    statevectorNext = scheme(statevector,
+                             dt, 
+                             eomGCA,
+                             q, m, μ, mesh, interpolator
+                             )
+    return statevectorNext[1:3], statevectorNext[4]
+    
+end # function GCA
+
+function eomGCA(
+    statevector ::Vector{wpFloat},
+    q           ::wpFloat,
+    m           ::wpFloat,
+    μ           ::wpFloat,
+    mesh        ::Mesh,
+    interpolator::Function
+    )
+    R      = statevector[1:3]
+    vparal = statevector[4] # Particle velocity parallel to the magnetic field
+
+    # Interpolate fields to this location
+    fields, _ = grid(mesh, interpolator, R)
+    # i, j k are cell corner indexes in mesh. Corresponding to the 
+    #  position of the particle.
+    B⃗ = fields[1] # The magnetic field
+    E⃗ = fields[2] # The electric field
+    ∇B = fields[3]     # The gradient of the magnetic field.
+    local B = norm(B⃗)   # The magnetic field strength
+    b̂ = B⃗/B       # An unit vector pointing in the direction of the
+                       #  magnetic field
+    # Electric field component parallel to the magnetic field
+    Eparal = E⃗⋅b̂ 
+    
+    # Compute the acceleration 
+    dvparaldt = (q*Eparal - μ*b̂⋅∇B)/m # along the magnetic field lines
+    # With spatially changing fields, the velocity at this point will not be the
+    # same as the last, independent of time.
+    #dRperpdt = b̂/B × (-c*E⃗ + μ*c/q * ∇B)
+    dRperpdt = b̂/B × (-E⃗ + μ/q * ∇B) 
+    dRdt = vparal*b̂ + dRperpdt
+    
+    # How to store the perpendicular velocity? Would need to know b̂ at each R calculate
+    #   vperp at each R. Could be interesting to store this as an auxiliary variable
+    #   somehow, to se how the drift evolves.
+    dsdt = [dRdt; dvparaldt]
+    return dsdt
+end # function GCA
+
+function drift(
+    b̂ ::Vector{wpFloat}, # Unit-vector pointing in the direction of the magnetic field
+    E⃗ ::Vector{wpFloat}, # The electrif field
+    ∇B::Vector{wpFloat}, # The gradient of the magnetic field
+    B ::wpFloat,         # The magnetic field strength
+    μ ::wpFloat,         # The magnetic moment of the particle
+    q ::wpFloat          # The charge of the particle
+    )
+end # function drift
+    
+
+
 
 function magneticFieldStrengthGradient(mesh, cellIdxI, cellIdxJ, cellIdxK)
     return [0.0, 0.0, 0.0]

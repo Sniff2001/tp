@@ -115,7 +115,7 @@ end # function streamplotslice
 #-----------#
 # Particles #
 #-------------------------------------------------------------------------------
-function plotenergydistr(particles::ParticleSoA, 
+function plotenergydistr(particles::Particles.ParticleSoA, 
                          snap     ::wpInt,
                          numbins  ::wpInt,
                          title
@@ -124,10 +124,22 @@ function plotenergydistr(particles::ParticleSoA,
     binrange = range(minimum(absvel), maximum(absvel), length=numbins)
     Plots.histogram(absvel, bins=binrange)
     Plots.xlabel!("Absolute velocity, m/s")
-    Plots.xlabel!("Number of particles")
+    Plots.ylabel!("Number of particles")
     Plots.title!(title)
 end # function plotenergydistr
 #
+function plotenergydistr(particles::Particles.GCAParticleSoA, 
+                         snap     ::wpInt,
+                         numbins  ::wpInt,
+                         title
+                         )
+    vparal = particles.vparal[:, snap]
+    binrange = range(minimum(vparal), maximum(vparal), length=numbins)
+    Plots.histogram(vparal, bins=binrange)
+    Plots.xlabel!("Parallel velcity, m/s")
+    Plots.ylabel!("Number of particles")
+    Plots.title!(title)
+end # function plotenergydistr
 function plotenergydistr(absvel ::Vector{wpFloat},
                          numbins::wpInt,
                          title
@@ -135,21 +147,23 @@ function plotenergydistr(absvel ::Vector{wpFloat},
     binrange = range(minimum(absvel), maximum(absvel), length=numbins)
     Plots.histogram(absvel, bins=binrange)
     Plots.xlabel!("Absolute velocity, m/s")
-    Plots.xlabel!("Number of particles")
+    Plots.ylabel!("Number of particles")
     Plots.title!(title)
 end # function plotenergydistr
 
-function plotplasmoid(pos,
-                      vel,
-                      times,
-                      Ek,
-                      xx,
-                      yy, 
-                      zz,
-                      B,
-                      numparticles,
-                      labelling
-                      )
+function plotplasmoid(
+    tp::TraceParticle,
+    times,
+    Ek,
+    xx,
+    yy, 
+    zz,
+    B,
+    numparticles,
+    labelling
+    )
+
+    pos = getpos(tp)
     # Energy plot
     PyPlot.figure()
     for i = 1:numparticles
@@ -168,10 +182,14 @@ function plotplasmoid(pos,
     for i = 1:numparticles
         PyPlot.plot(pos[1,i,1], pos[2,i,1], marker="o")
     end
-    PyPlot.quiver(pos[1, :, 1], pos[2, :, 1],
-           vel[1, :, 1], vel[2, :, 1],
-           width=0.003)
-    PyPlot.title("Initial positions")
+    if typeof(tp) == ParticleSoA
+        # Plot starting velocity as an arrow
+        vel = getvel(tp)
+        PyPlot.quiver(pos[1, :, 1], pos[2, :, 1],
+                      vel[1, :, 1], vel[2, :, 1],
+                      width=0.003)
+        PyPlot.title("Particle trajectories")
+    end
     
     # Streamplot of magnetic field with particle trajectories
     PyPlot.figure()
@@ -185,11 +203,25 @@ function plotplasmoid(pos,
     end
     for i = 1:numparticles
         PyPlot.plot(pos[1,i,1], pos[2,i,1], marker="o", color="blue")
+        # Mark position after t=1.5
+        if i == 1
+            PyPlot.plot(pos[1,1,1501], pos[2,1,1501], marker="^",
+                        color="black",label="t = 1.5s", linestyle="None") 
+        else
+            PyPlot.plot(pos[1,i,1501], pos[2,i,1501], marker="^",
+                        color="black") 
+        end
     end
-    PyPlot.quiver(pos[1, :, 1], pos[2, :, 1],
-           vel[1, :, 1], vel[2, :, 1],
-           width=0.003)
-    PyPlot.title("Particle trajectories")
+
+    if typeof(tp) == ParticleSoA
+        # Plot starting velocity as an arrow
+        vel = getvel(tp)
+        PyPlot.quiver(pos[1, :, 1], pos[2, :, 1],
+                      vel[1, :, 1], vel[2, :, 1],
+                      width=0.003)
+        PyPlot.title("Particle trajectories")
+    end
+
     if labelling
         PyPlot.legend()
     end
@@ -232,8 +264,7 @@ function plot(
     times = collect(range(0.0, step=patch.dt, length=patch.numSteps+1))
     Ek = kineticenergy(patch.tp)
     plotplasmoid(
-        patch.tp.pos,
-        patch.tp.vel,
+        patch.tp,
         times,
         Ek,
         patch.mesh.xCoords, patch.mesh.yCoords, patch.mesh.zCoords,
@@ -245,9 +276,9 @@ function plot(
     numbins = 20
     p1 = plotenergydistr(patch.tp, 1, numbins, "Initial energy")
     p2 = plotenergydistr(patch.tp, patch.numSteps+1, numbins, "final energy")
-    p3 = plotenergydistr(patch.tp.vel[1, :, 1], numbins, "Vx-initial")
-    p4 = plotenergydistr(patch.tp.vel[1, :, end], numbins, "Vx-final")
-    Plots.plot(p1,p2,p3, p4)
+    #p3 = plotenergydistr(patch.tp.vel[1, :, 1], numbins, "Vx-initial")
+    #p4 = plotenergydistr(patch.tp.vel[1, :, end], numbins, "Vx-final")
+    Plots.plot(p1,p2)#p3,p4)
 end
 
 

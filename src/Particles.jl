@@ -19,6 +19,7 @@ using Utilities: norm3
 #-------------#   
 # Exports     # 
 #-------------#-----------------------------------------------------------------
+export TraceParticle
 export ParticleSoA # Particles represented as struct of arrays
 export specieTable # Maping specie to mass and charge
 export reset!      # Resets particle positions to zero (except initial position)
@@ -38,7 +39,14 @@ specieTable = [m_e  -e     # Electron
 #-------------#   
 # Structs     # 
 #-------------#-----------------------------------------------------------------
-mutable struct ParticleSoA
+"""
+    TraceParticle
+The supertype of all trace particles
+"""
+abstract type TraceParticle end
+
+    
+mutable struct ParticleSoA <: TraceParticle
     pos    ::Array{wpFloat, 3}
     vel    ::Array{wpFloat, 3}
     species::Vector{wpInt}   # Particle specie identifier (e.g. electron, proton)

@@ -23,6 +23,8 @@ export TraceParticle
 export ParticleSoA # Particles represented as struct of arrays
 export GCAParticleSoA
 export specieTable # Maping specie to mass and charge
+export getpos
+export getvel
 export reset!      # Resets particle positions to zero (except initial position)
 export setinitpos! # Sets the initial position of particles
 export setinitvel! # Sets the initial velocity of particles
@@ -118,6 +120,23 @@ mutable struct GCAParticleSoA <: TraceParticle
     end # constructor 
 end # mutable struct ParticleSoA
 
+#------------------------#
+# Particle get-functions #
+#-------------------------------------------------------------------------------
+function getpos(particles::ParticleSoA)
+    return particles.pos
+end
+#|
+function getpos(particles::GCAParticleSoA)
+    return particles.R
+end
+
+
+function getvel(particles::ParticleSoA)
+    return particles.vel
+end
+#------------------------#
+# Particle set-functions #
 #-------------------------------------------------------------------------------
 function reset!(particles::ParticleSoA)
     n = length(particles.pos[1,1,:])

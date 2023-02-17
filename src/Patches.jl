@@ -153,6 +153,41 @@ function run!(patch::Patch)
        end # loop over particles (j)
     end # loop over timesteps (i)
 end # function: run
+
+
+#----------------#
+# Base functions #
+#-------------------------------------------------------------------------------
+"""
+    Base.copy(p::Patch)
+Make a deep copy of a Patch-type.
+"""
+function Base.copy(p::Patch)
+    Patch(p.mesh,
+          copy(p.tp),
+          p.solver,
+          p.scheme,
+          p.interpolator,
+          p.dt,
+          p.numSteps,
+          p.numParticles,
+          p.periodicBC
+          )
+end # function Base.copy
+
+
+function Base.Multimedia.display(p::Patch)
+    println("""Instance of mutable struct:
+    Patches.Patch
+        mesh        ::Meshes.Mesh
+        tp          ::Particles.TraceParticle 
+        solver      ::Function
+        scheme      ::Function
+        interpolator::Function
+        dt          ::wpFloat
+        numSteps    ::wpInt
+        numParticles::wpInt""")
+end # function Base.Multimedia.display
 #-------------------------------------------------------------------------------
 
 end # module Patches

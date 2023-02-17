@@ -66,11 +66,22 @@ mutable struct ParticleSoA <: TraceParticle
     the creation of the type accordingly, by adding the initial conditions to
     an higher order array.
     """
-    function ParticleSoA(pos     ::Matrix{wpFloat},
-                         vel     ::Matrix{wpFloat},
-                         species ::Vector{wpInt},
-                         numSteps::Integer
-                         )
+    function ParticleSoA( # "Default" constructor
+        pos    ::Array{wpFloat, 3},
+        vel    ::Array{wpFloat, 3},
+        species::Vector{wpInt},   # Particle specie identifier (e.g. electron, proton)
+        alive  ::Vector{Bool},
+        weight ::Vector{wpFloat}
+        )
+        return new(pos, vel, species, alive, weight)
+    end # constructor 
+    #|
+    function ParticleSoA(
+        pos     ::Matrix{wpFloat},
+        vel     ::Matrix{wpFloat},
+        species ::Vector{wpInt},
+        numSteps::Integer
+        )
         numDims, numParticles = size(pos)
         numVels, numParticles = size(vel)
         positions  = zeros(wpFloat, numDims, numParticles, numSteps + 1)
@@ -102,7 +113,19 @@ mutable struct GCAParticleSoA <: TraceParticle
     the creation of the type accordingly, by adding the initial conditions to
     an higher order array.
     """
-    function GCAParticleSoA(
+    function GCAParticleSoA( # "Default" constructor
+        R      ::Array{wpFloat, 3}, # The position of the guiding centre
+        vparal ::Matrix{wpFloat},   # The velocity parallel to the magnetic field
+        μ      ::Vector{wpFloat},   # Magnetic moment μ of particle
+        species::Vector{wpInt},     # Particle specie identifier
+                                    #   (e.g. electron, proton)
+        alive  ::Vector{Bool},
+        weight ::Vector{wpFloat}
+        )
+        return new(R, vparal, μ, species, alive, weight)
+    end # constructor 
+    #|
+    function GCAParticleSoA( # Given only initial conditions
         initR     ::Matrix{wpFloat},
         initvparal::Vector{wpFloat},
         μ         ::Vector{wpFloat},
@@ -119,6 +142,90 @@ mutable struct GCAParticleSoA <: TraceParticle
         return new(R, vparal, μ, species, alive, weight)
     end # constructor 
 end # mutable struct ParticleSoA
+
+#----------------#
+# Base functions #
+#-------------------------------------------------------------------------------
+"""
+    Base.copy(tp::TraceParticle)
+Make a deep copy of a TraceParticle-type.
+"""
+function Base.copy(tp::ParticleSoA)
+    ParticleSoA(copy(tp.pos),
+                copy(tp.vel),
+                copy(tp.species),
+                copy(tp.alive),
+                copy(tp.weight)
+                )
+end # function Base.copy
+#|
+function Base.copy(tp::GCAParticleSoA)
+    GCAParticleSoA(copy(tp.R),
+                   copy(tp.vparal),
+                   copy(tp.μ),
+                   copy(tp.species),
+                   copy(tp.alive),
+                   copy(tp.weight)
+                   )
+end # function Base.copy
+                     
+
+function Base.Multimedia.display(tp::ParticleSoA)
+    println("""Instance of mutable struct:
+    Particles.ParticleSoA <: Particles.TraceParticle
+        pos    ::Array{wpFloat, 3}
+        vel    ::Array{wpFloat, 3}
+        species::Vector{wpInt}   
+        alive  ::Vector{Bool}
+        weight ::Vector{wpFloat}
+    """)
+    println("................................................................")
+    println("GCAPaticleSoA.pos:")
+    display(tp.pos)
+    println("................................................................")
+    println("GCAPaticleSoA.vel:")
+    display(tp.vel)
+    println("................................................................")
+    println("GCAPaticleSoA.species:")
+    display(tp.species)
+    println("................................................................")
+    println("GCAPaticleSoA.alive:")
+    display(tp.alive)
+    println("................................................................")
+    println("GCAPaticleSoA.weight:")
+    display(tp.weight)
+end # function Base.Multimedia.display
+#|
+function Base.Multimedia.display(tp::GCAParticleSoA)
+    println("""Instance of mutable struct:
+    Particles.ParticleSoA <: Particles.TraceParticle
+        R      ::Array{wpFloat, 3} 
+        vparal ::Matrix{wpFloat}   
+        μ      ::Vector{wpFloat}  
+        species::Vector{wpInt}   
+        alive  ::Vector{Bool}
+        weight ::Vector{wpFloat}
+    """)
+    println("................................................................")
+    println("GCAPaticleSoA.R:")
+    display(tp.R)
+    println("................................................................")
+    println("GCAPaticleSoA.vparal:")
+    display(tp.vparal)
+    println("................................................................")
+    println("GCAPaticleSoA.μ:")
+    display(tp.μ)
+    println("................................................................")
+    println("GCAPaticleSoA.species:")
+    display(tp.species)
+    println("................................................................")
+    println("GCAPaticleSoA.alive:")
+    display(tp.alive)
+    println("................................................................")
+    println("GCAPaticleSoA.weight:")
+    display(tp.weight)
+end # function Base.Multimedia.display
+
 
 #------------------------#
 # Particle get-functions #

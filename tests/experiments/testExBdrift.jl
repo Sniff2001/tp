@@ -165,14 +165,16 @@ and the chosen numerical solver, scheme and interpolation chosen.
     vperpp = √(vxp^2 + vyp^2)
     μₑ = me*vperpe^2/2Bz
     μₚ = me*vperpe^2/2Bz
-    velGCA[:, 1] = [vxe, vye, vze, vperpe, vze, μₑ]
-    velGCA[:, 2] = [vxp, vyp, vzp, vperpp, vzp, μₚ]
+    vparal = zeros(numParticles) # Velocity parallell to the magnetic field
+    vparal[1] = vel[3,1] 
+    vparal[2] = vel[3,2] 
+    μ = [0.0, 0.0]               # Magnetic moment of the particles
     pos[:, 1] = [x0e, y0e, z0e]  # Initial position electron
     pos[:, 2] = [x0p, y0p, z0p]  # Initial position proton
     # Create ParticlesSoA-instance
     particlesEC = ParticleSoA(pos, vel, species, numSteps)
     particlesVay = ParticleSoA(pos, vel, species, numSteps)
-    particlesGCA = ParticleSoA(pos, velGCA, species, numSteps)
+    particlesGCA = GCAParticleSoA(pos, vparal, μ, species, numSteps)
     
 #-------------------------------------------------------------------------------
     # CREATE PATCH
@@ -264,8 +266,8 @@ and the chosen numerical solver, scheme and interpolation chosen.
 
     # GCA
     # Electron
-    numPose = patchGCA.tp.pos[:, 1, :]
-    numPosp = patchGCA.tp.pos[:, 2, :]
+    numPose = patchGCA.tp.R[:, 1, :]
+    numPosp = patchGCA.tp.R[:, 2, :]
     rmsErrexGCA = √(sum((pose[1,2:numSteps] .-
         numPose[1,2:numSteps]).^2)/numSteps)
     rmsErreyGCA = √(sum((pose[2,2:numSteps] .-

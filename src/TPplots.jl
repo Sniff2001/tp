@@ -14,7 +14,9 @@ module TPplots
 # External libraries
 import Plots
 import PyPlot
+const plt = PyPlot
 using LinearAlgebra:    norm
+using LaTeXStrings
 # Internal libraries
 using WorkingPrecision: wpInt, wpFloat
 using Meshes
@@ -25,15 +27,19 @@ using Interpolations
 using Schemes
 using Solvers
 
+export plt
 export plot
 
 #------#
 # Mesh #
 #-------------------------------------------------------------------------------
-function quiverslice(mesh::Mesh, 
-                     normal::String, 
-                     point::wpInt,
-                     field::String="B")
+function quiverslice!(
+    ax  ::plt.PyCall.PyObject,
+    mesh::Mesh, 
+    normal::String, 
+    point::wpInt,
+    field::String="B"
+    )
     if field == "B"
         f = mesh.bField
     elseif field == "E"
@@ -42,39 +48,35 @@ function quiverslice(mesh::Mesh,
         println("Error: Invalid field.")
     end
     if normal == "x"
-        PyPlot.quiver(mesh.yCoords,
+        ax.quiver(mesh.yCoords,
                mesh.zCoords,
                transpose(f[2, point, :, :]),
                transpose(f[3, point, :, :])
                )
-        PyPlot.xlabel("y")
-        PyPlot.ylabel("z")
     elseif normal == "y"
-        PyPlot.quiver(mesh.xCoords,
+        ax.quiver(mesh.xCoords,
                mesh.zCoords,
                transpose(f[1, :, point, :]),
                transpose(f[3, :, point, :])  
                )
-        PyPlot.xlabel("x")
-        PyPlot.ylabel("z")
     elseif normal == "z"
-        PyPlot.quiver(mesh.xCoords,
+        ax.quiver(mesh.xCoords,
                mesh.yCoords,
                transpose(f[1, :, :, point]),
                transpose(f[2, :, :, point])  
                )
-        PyPlot.xlabel("x")
-        PyPlot.ylabel("y")
     else
         println("Error: Plane not valid.")
     end
 end # function quiverslice
 
 
-function streamplotslice(mesh::Mesh, 
-                         normal::String, 
-                         point::wpInt,
-                         field::String="B")
+function streamplotslice!(
+    ax    ::plt.PyCall.PyObject,
+    mesh  ::Mesh, 
+    normal::String, 
+    point ::wpInt,
+    field ::String="B")
     if field == "B"
         f = mesh.bField
     elseif field == "E"
@@ -83,33 +85,73 @@ function streamplotslice(mesh::Mesh,
         println("Error: Invalid field.")
     end
     if normal == "x"
-        PyPlot.streamplot(mesh.yCoords,
-               mesh.zCoords,
-               transpose(f[2, point, :, :]),
-               transpose(f[3, point, :, :])
-               )
-        xlabel("y")
-        ylabel("z")
+        xx = mesh.yCoords
+        yy = mesh.zCoords
+        uu = transpose(f[2, point, :, :])
+        vv = transpose(f[3, point, :, :])
     elseif normal == "y"
-        PyPlot.streamplot(mesh.xCoords,
-               mesh.zCoords,
-               transpose(f[1, :, point, :]),
-               transpose(f[3, :, point, :])  
-               )
-        xlabel("x")
-        ylabel("z")
+        xx = mesh.xCoords
+        yy = mesh.zCoords
+        uu = transpose(f[1, :, point, :])
+        vv = transpose(f[3, :, point, :])
     elseif normal == "z"
-        PyPlot.streamplot(mesh.xCoords,
-               mesh.yCoords,
-               transpose(f[1, :, :, point]),
-               transpose(f[2, :, :, point])  
-               )
-        xlabel("x")
-        ylabel("y")
+        xx = mesh.xCoords
+        yy = mesh.yCoords
+        uu = transpose(f[1, :, :, point])
+        vv = transpose(f[2, :, :, point])
     else
         println("Error: Plane not valid.")
     end
+    ax.streamplot(
+        xx,
+        yy,
+        uu,
+        vv,
+        linewidth=0.3,
+        arrowsize=0.6,
+        color="black"
+    )
 end # function streamplotslice
+
+
+function pcolormeshslice!(
+    ax    ::plt.PyCall.PyObject,
+    mesh  ::Mesh, 
+    normal::String, 
+    point ::wpInt,
+    field ::String="B")
+    if field == "B"
+        f = mesh.bField
+        label = latexstring("\$|\\mathbf{B}|\$")
+    elseif field == "E"
+        f = mesh.eField
+        label = latexstring("\$|\\mathbf{E}|\$")
+    else
+        println("Error: Invalid field.")
+    end
+    fabs = norm4(f)
+    if normal == "x"
+        pfabs = copy(transpose(fabs[point,:,:]))
+        uuu = mesh.yCoords' .* ones(length(mesh.zCoords))
+        vvv = ones(length(mesh.yCoords))' .* mesh.zCoords
+    elseif normal == "y"
+        pfabs = copy(transpose(fabs[:,point,:]))
+        uuu = mesh.xCoords' .* ones(length(mesh.zCoords))
+        vvv = ones(length(mesh.xCoords))' .* mesh.zCoords
+    elseif normal == "z"
+        pfabs = copy(transpose(fabs[:,:,point]))
+        uuu = mesh.xCoords' .* ones(length(mesh.yCoords))
+        vvv = ones(length(mesh.xCoords))' .* mesh.yCoords
+    else
+        println("Error: Plane not valid.")
+    end
+    pcm = ax.pcolormesh(uuu, vvv, pfabs,
+                        alpha=1.0,
+                        cmap=plt.get_cmap("Greys"))
+    cb = plt.colorbar(pcm,
+                      label=label,
+                      ax=ax)
+end # function colormeshslice
 
 
 #-----------#
@@ -151,86 +193,18 @@ function plotenergydistr(absvel ::Vector{wpFloat},
     Plots.title!(title)
 end # function plotenergydistr
 
-function plotplasmoid(
-    tp::TraceParticle,
-    times,
-    Ek,
-    xx,
-    yy, 
-    zz,
-    B,
-    numparticles,
-    labelling
+
+
+function plotperiodictrajectory(
+    ax::plt.PyCall.PyObject,
+    pos::Matrix{wpFloat},
+    partidx::wpInt,
+    domain ::Matrix{wpFloat},
+    cm,
+    colorrange,
     )
-
-    pos = getpos(tp)
-    # Energy plot
-    PyPlot.figure()
-    for i = 1:numparticles
-        PyPlot.plot(times, Ek[i, :], label="#$i")
-    end
-    PyPlot.title("Kinetic energy")
-    PyPlot.xlabel("Time, s")
-    PyPlot.ylabel("Energy, J")
-    if labelling
-        PyPlot.legend()
-    end
-    
-    # Streamplot of magnetic field with initial positions and velocity
-    PyPlot.figure()
-    PyPlot.streamplot(xx, yy, transpose(B[1,:,:,1]), transpose(B[2,:,:,1]))
-    for i = 1:numparticles
-        PyPlot.plot(pos[1,i,1], pos[2,i,1], marker="o")
-    end
-    if typeof(tp) == ParticleSoA
-        # Plot starting velocity as an arrow
-        vel = getvel(tp)
-        PyPlot.quiver(pos[1, :, 1], pos[2, :, 1],
-                      vel[1, :, 1], vel[2, :, 1],
-                      width=0.003)
-        PyPlot.title("Particle trajectories")
-    end
-    
-    # Streamplot of magnetic field with particle trajectories
-    PyPlot.figure()
-    PyPlot.streamplot(xx, yy, transpose(B[1,:,:,1]), transpose(B[2,:,:,1]))
-
-    cm = PyPlot.get_cmap(:tab20)
-    colorrange = (0:numparticles) ./ numparticles
-
-    for i = 1:numparticles
-        plotperiodictrajectory(pos[:,i,:], i, cm, colorrange)
-    end
-    for i = 1:numparticles
-        PyPlot.plot(pos[1,i,1], pos[2,i,1], marker="o", color="blue")
-        # Mark position after t=1.5
-        if i == 1
-            PyPlot.plot(pos[1,1,1501], pos[2,1,1501], marker="^",
-                        color="black",label="t = 1.5s", linestyle="None") 
-        else
-            PyPlot.plot(pos[1,i,1501], pos[2,i,1501], marker="^",
-                        color="black") 
-        end
-    end
-
-    if typeof(tp) == ParticleSoA
-        # Plot starting velocity as an arrow
-        vel = getvel(tp)
-        PyPlot.quiver(pos[1, :, 1], pos[2, :, 1],
-                      vel[1, :, 1], vel[2, :, 1],
-                      width=0.003)
-        PyPlot.title("Particle trajectories")
-    end
-
-    if labelling
-        PyPlot.legend()
-    end
-
-end # function plotplasmoid
-
-
-function plotperiodictrajectory(pos, partidx, cm, colorrange)
-    extent = [1.0, 1.0, 1.0] # Hardcoded for now
+    extent = domain[:,2] .- domain[:,1]
+    println(extent)
     posjumps = diff(pos, dims=2)
     posjumps = @. abs(posjumps)
     mask = @. isapprox(posjumps, extent, rtol=0.01)
@@ -241,15 +215,15 @@ function plotperiodictrajectory(pos, partidx, cm, colorrange)
         for s = 1:length(indices)
             i = indices[s][2] # We only care about what time step the particle
             # hit the boundary, not which boundary was crossed.
-            PyPlot.plot(pos[1,j:i], pos[2,j:i], color=cm(colorrange[partidx]))
-                        
+            ax.plot(pos[1,j:i], pos[2,j:i], color=cm(colorrange[partidx]),
+                        label="Particle $partidx")                       
             j = i+1
+            break
         end
-        PyPlot.plot(pos[1,j:end], pos[2,j:end], color=cm(colorrange[partidx]),
-                    label="#$partidx")
+        ax.plot(pos[1,j:end], pos[2,j:end], color=cm(colorrange[partidx]))
     else
-        PyPlot.plot(pos[1,:], pos[2,:], color=cm(colorrange[partidx]),
-                    label="#$partidx")
+        ax.plot(pos[1,:], pos[2,:], color=cm(colorrange[partidx]),
+                    label="Particle $partidx")
     end
 end 
 
@@ -261,29 +235,58 @@ function plot(
     patch    ::Patch,
     labelling::Bool=false
     )
+
+    pos = getpos(patch.tp)
     times = collect(range(0.0, step=patch.dt, length=patch.numSteps+1))
     Ek = kineticenergy(patch.tp)
-    plotplasmoid(
-        patch.tp,
-        times,
-        Ek,
-        patch.mesh.xCoords, patch.mesh.yCoords, patch.mesh.zCoords,
-        patch.mesh.bField,
-        patch.numParticles,
-        labelling
-    )
 
+    fig, axes = plt.subplots(1,1)
+
+    # Make streamplot of magnetic field
+    streamplotslice!(axes, patch.mesh, "z", 1)
+    # Make pcolormesh of magnetic field strength
+    pcolormeshslice!(axes, patch.mesh, "z", 1)
+    # Plot particle trajectories
+    cm = plt.get_cmap(:tab20)
+    colorrange = (0:patch.numParticles) ./ patch.numParticles
+    for i = 1:patch.numParticles
+        plotperiodictrajectory(axes, pos[:,i,:], i, patch.mesh.domain,
+                               cm, colorrange)
+    end
+    # Mark initial positions of particles
+    for i = 1:patch.numParticles
+        if i == 1
+            axes.plot(pos[1,1,1], pos[2,1,1], marker=".", color="Black",
+                        label=latexstring("\$t_0\$"), linestyle="None")
+        else
+            axes.plot(pos[1,i,1], pos[2,i,1], marker=".", color="Black")
+        end
+    end
+
+    # Set title and labelling
+    if typeof(patch.tp) == ParticleSoA
+        axes.set_title("Full-orbit")
+    else
+        axes.set_title("GCA")
+    end
+    if labelling
+        axes.legend()
+    end
+    axes.set_xlabel(latexstring("\$x\$"))
+    axes.set_ylabel(latexstring("\$y\$"))
+   
+    # Make energy distribution-plots
     numbins = 20
     p1 = plotenergydistr(patch.tp, 1, numbins, "Initial energy")
     p2 = plotenergydistr(patch.tp, patch.numSteps+1, numbins, "final energy")
-    #p3 = plotenergydistr(patch.tp.vel[1, :, 1], numbins, "Vx-initial")
-    #p4 = plotenergydistr(patch.tp.vel[1, :, end], numbins, "Vx-final")
     Plots.plot(p1,p2)#p3,p4)
-end
+
+end # function plot
 
 
-#---------#
-# Other   #
+
+#---------------------#
+# Field line tracing  #
 #-------------------------------------------------------------------------------
 function generatefieldline(
     mesh,
@@ -391,7 +394,7 @@ function generatefieldline(
 end 
 
 
-function plotfieldlines(mesh, numlines, stepsize, interpolator, scheme)
+function plotfieldlines(mesh, numlines::wpInt, stepsize, interpolator, scheme)
     fieldstrength = norm4(mesh.bField)
     maxfieldstrength = maximum(fieldstrength)
     # Create a function which returns the field strength at a given position.
@@ -421,12 +424,377 @@ function plotfieldlines(mesh, numlines, stepsize, interpolator, scheme)
                                     )
         lines[:,i,:] .= l
     end
-    PyPlot.figure()
-    PyPlot.plot(lines[1,1,:], lines[2,1,:], color="black", linewidth=0.5)
+    plt.figure()
+    plt.plot(lines[1,1,:], lines[2,1,:], color="black", linewidth=0.5)
     for i = 2:numlines
-        PyPlot.plot(lines[1,i,:], lines[2,i,:], color="black", linewidth=0.5)
+        plt.plot(lines[1,i,:], lines[2,i,:], color="black", linewidth=0.5)
     end
     return lines, positions
 end
+#|
+function plotfieldlines(
+    mesh,
+    initpos::Matrix{wpFloat},
+    stepsize,
+    interpolator,
+    scheme
+    )
+    numlines = size(initpos)[2]
+    positions = initpos
+    maxextent = maximum(mesh.domain[:, 2] .- mesh.domain[:, 1]) 
+    numsteps = wpInt(2maxextent/stepsize)
+    lines = zeros((mesh.numdims, numlines, 2*numsteps+2))
+    for i = 1:numlines
+        l, _, _ = generatefieldline(mesh,
+                                    positions[:,i],
+                                    stepsize,
+                                    numsteps,
+                                    interpolator,
+                                    scheme
+                                    )
+        lines[:,i,:] .= l
+    end
+    plt.figure()
+    plt.plot(lines[1,1,:], lines[2,1,:], color="black", linewidth=0.5)
+    for i = 2:numlines
+        plt.plot(lines[1,i,:], lines[2,i,:], color="black", linewidth=0.5)
+    end
+    return lines, positions
+end
+
+
+#---------------------------------------------------#
+# Messy plotting function hardcoded for RoCMI 2023  #
+#-------------------------------------------------------------------------------
+"""
+    plotRoCMI(patch, labelling)
+Plotting function used to make RoCMI-poster figures.
+"""
+function plotRoCMI(
+    patch    ::Patch,
+    labelling::Bool=false
+    )
+    times = collect(range(0.0, step=patch.dt, length=patch.numSteps+1))
+    Ek = kineticenergy(patch.tp)
+    plotplasmoid(
+        patch.tp,
+        times,
+        Ek,
+        patch.mesh.xCoords, patch.mesh.yCoords, patch.mesh.zCoords,
+        patch.mesh.bField,
+        patch.numParticles,
+        labelling
+    )
+    numbins = 20
+    p1 = plotenergydistr(patch.tp, 1, numbins, "Initial energy")
+    p2 = plotenergydistr(patch.tp, patch.numSteps+1, numbins, "final energy")
+    #p3 = plotenergydistr(patch.tp.vel[1, :, 1], numbins, "Vx-initial")
+    #p4 = plotenergydistr(patch.tp.vel[1, :, end], numbins, "Vx-final")
+    Plots.plot(p1,p2)#p3,p4)
+end
+
+
+"""
+    plotRoCMI(patch, labelling)
+Function for attempt to make nice subplots for the RoCMI-poster (Did not finish).
+"""
+function plotRoCMIsubplot(
+    fbpatch  ::Patch,
+    GCApatch ::Patch,
+    labelling::Bool=false
+    )
+    times = collect(range(0.0, step=fbpatch.dt, length=fbpatch.numSteps+1))
+    Ek = kineticenergy(fbpatch.tp)
+    plotplasmoid(
+        fbpatch.tp,
+        GCApatch.tp,
+        times,
+        Ek,
+        fbpatch.mesh.xCoords, fbpatch.mesh.yCoords, fbpatch.mesh.zCoords,
+        fbpatch.mesh.bField,
+        fbpatch.numParticles,
+        labelling
+    )
+end
+
+
+"""
+    plotplasmoid(tp::TraceParticle, ...)
+Function for plotting GCA or full orbit trajectories of the plasmoid-experiment
+used to make figures for the RoCMI 2023 poster.
+"""
+function plotplasmoid(
+    tp::TraceParticle,
+    times,
+    Ek,
+    xx,
+    yy, 
+    zz,
+    B,
+    numparticles,
+    labelling
+    )
+
+    pos = getpos(tp)
+    # Energy plot
+    plt.figure()
+    for i = 1:numparticles
+        if i == 2
+            plt.plot(times[1:1904], Ek[i, 1:1904], label="Particle $i")
+        elseif i == 3
+            plt.plot(times[1:1744], Ek[i, 1:1744], label="Particle $i")
+        elseif i == 4
+            plt.plot(times[1:793], Ek[i, 1:793], label="Particle $i")
+        else
+            plt.plot(times, Ek[i, :], label="Particle $i")
+        end
+    end
+    if typeof(tp) == ParticleSoA
+        plt.title("Full-orbit: Kinetic energy")
+    else
+        plt.title("GCA: kinetic energy")
+    end
+    plt.xlabel("Time, s")
+    plt.ylabel("Energy, J")
+    if labelling
+        plt.legend()
+    end
+    
+    # Streamplot of magnetic field with initial positions and velocity
+    #plt.figure()
+    #plt.streamplot(xx, yy, transpose(B[1,:,:,1]), transpose(B[2,:,:,1]))
+    #for i = 1:numparticles
+    #    plt.plot(pos[1,i,1], pos[2,i,1], marker="o")
+    #end
+    #if typeof(tp) == ParticleSoA
+    #    # Plot starting velocity as an arrow
+    #    vel = getvel(tp)
+    #    plt.quiver(pos[1, :, 1], pos[2, :, 1],
+    #                  vel[1, :, 1], vel[2, :, 1],
+    #                  width=0.003)
+    #    plt.title("Full-orbit trajectories")
+    #else
+    #    plt.title("GCA trajectories")
+    #end
+    
+    # Streamplot of magnetic field with particle trajectories
+    babs = norm4(B) # Magnetic field strength
+    plt.figure()
+    #plt.axis("equal")
+    #plt.contourf(xx, yy, transpose(babs[:,:,1]), levels=70,
+    #                alpha=1.0,
+    #                cmap=plt.get_cmap("Greys"))
+    pbabs = copy(transpose(babs[:,:,1]))
+    uuu = xx' .* ones(length(yy))
+    vvv = ones(length(xx))' .* yy
+    plt.pcolormesh(uuu, vvv, pbabs,
+                    alpha=1.0,
+                    cmap=plt.get_cmap("Greys"))
+    cb = plt.colorbar(label=latexstring("\$|\\mathbf{B}|\$"),
+                         ticks=[minimum(pbabs), maximum(pbabs)]
+                         )
+    println(minimum(pbabs))
+    cb.ax.set_yticklabels(
+        [latexstring("\$B_{min}\$"),latexstring("\$B_{max}\$")])
+    plt.streamplot(xx, yy, transpose(B[1,:,:,1]), transpose(B[2,:,:,1]),
+                      linewidth=0.3,
+                      arrowsize=0.6,
+                      color="black")
+    plt.xlabel(latexstring("\$x\$"))
+    plt.ylabel(latexstring("\$y\$"))
+    cm = plt.get_cmap(:tab20)
+    colorrange = (0:numparticles) ./ numparticles
+
+    for i = 1:numparticles
+        plotperiodictrajectory(pos[:,i,:], i, cm, colorrange)
+    end
+    for i = 1:numparticles
+        # Mark position after t=1.5
+        if i == 1
+            #plt.plot(pos[1,1,1501], pos[2,1,1501], marker="^",
+            #            color="black",label="t = 1.5s", linestyle="None") 
+            plt.plot(pos[1,1,1], pos[2,1,1], marker=".", color="Black",
+                        label=latexstring("\$t_0\$"), linestyle="None")
+        else
+            #plt.plot(pos[1,i,1501], pos[2,i,1501], marker="^",
+            #            color="black") 
+            plt.plot(pos[1,i,1], pos[2,i,1], marker=".", color="Black")
+        end
+    end
+
+    if typeof(tp) == ParticleSoA
+        # Plot starting velocity as an arrow
+        #vel = getvel(tp)
+        #plt.quiver(pos[1, :, 1], pos[2, :, 1],
+        #              vel[1, :, 1], vel[2, :, 1],
+        #              width=0.003)
+        plt.title("Full-orbit")
+    else
+        plt.title("GCA")
+    end
+
+    if labelling
+        plt.legend()
+    end
+
+end # function plotplasmoid
+
+
+"""
+    plotplasmoid(tp::ParticleSoA, tp::GCAParticleSoA, ...)
+Subplot both full orbit and GCA for comparison in RoCMI-poster.
+"""
+function plotplasmoid(
+    fbtp::ParticleSoA,
+    gcatp::GCAParticleSoA,
+    times,
+    Ek,
+    xx,
+    yy, 
+    zz,
+    B,
+    numparticles,
+    labelling
+    )
+    #fig = plt.figure(figsize=(10,6))
+    fig = plt.figure()
+    energyplot = fig.add_subplot(3,4,(9,12))
+    # Energy plot
+    for i = 1:numparticles
+        if i == 2
+            energyplot.plot(times[1:1904], Ek[i, 1:1904], label="Particle $i")
+        elseif i == 3
+            energyplot.plot(times[1:1744], Ek[i, 1:1744], label="Particle $i")
+        elseif i == 4
+            energyplot.plot(times[1:793], Ek[i, 1:793], label="Particle $i")
+        else
+            energyplot.plot(times, Ek[i, :], label="Particle $i")
+        end
+    end
+    energyplot.set_title("Full-orbit: Kinetic energy")
+    energyplot.set_xlabel("Time, s")
+    energyplot.set_ylabel("Energy, J")
+    if labelling
+        energyplot.legend()
+    end
+    
+    # Streamplot of magnetic field with particle trajectories
+    fbplot = fig.add_subplot(3,4,(3))
+    pos = fbplot.get_position()
+    fbplot.set_position([pos.x0*2, pos.y0*2, pos.width, pos.height/2])
+    gcaplot = fig.add_subplot(3,4,(1))
+    pos = gcaplot.get_position()
+    fbplot.set_title("Full-orbit")
+    gcaplot.set_title("GCA")
+    fbplot.set_xlabel(latexstring("\$x\$"))
+    fbplot.set_ylabel(latexstring("\$y\$"))
+    gcaplot.set_xlabel(latexstring("\$x\$"))
+    # Full orbit
+    babs = norm4(B) # Magnetic field strength
+    pcm1 = fbplot.contourf(xx, yy, transpose(babs[:,:,1]),
+                    alpha=1.0,
+                    cmap=plt.get_cmap("Greys"))
+    fbcb = plt.colorbar(pcm1,
+#                         label=latexstring("\$|\\mathbf{B}|\$"),
+                         ticks=[0, maximum(babs)],
+                         ax=fbplot
+                         )
+    fbcb.ax.set_yticklabels(["0",latexstring("\$B_{max}\$")])
+    fbplot.streamplot(xx, yy, transpose(B[1,:,:,1]), transpose(B[2,:,:,1]),
+                      linewidth=0.3,
+                      arrowsize=0.6,
+                      color="black")
+    # GCA
+    pcm2 = gcaplot.contourf(xx, yy, transpose(babs[:,:,1]),
+                           alpha=1.0,
+                           cmap=plt.get_cmap("Greys"))
+    
+    gcacb = plt.colorbar(pcm2,
+#                         label=latexstring("\$|\\mathbf{B}|\$"),
+                         ticks=[0, maximum(babs)],
+                         ax=gcaplot
+                         )
+    gcacb.ax.set_yticklabels(["0",latexstring("\$B_{max}\$")])
+    gcaplot.streamplot(xx, yy, transpose(B[1,:,:,1]), transpose(B[2,:,:,1]),
+                      linewidth=0.3,
+                      arrowsize=0.6,
+                      color="black")
+
+    # Plot particle trajectories
+    cm = plt.get_cmap(:tab20)
+    colorrange = (0:numparticles) ./ numparticles
+    for i = 1:numparticles
+        plotperiodictrajectory(fbplot, fbtp.pos[:,i,:], i, cm, colorrange)
+        plotperiodictrajectory(gcaplot, gcatp.R[:,i,:], i, cm, colorrange)
+    end
+
+    for i = 1:numparticles
+        # Mark position after t=1.5
+        if i == 1
+            fbplot.plot(fbtp.pos[1,1,1], fbtp.pos[2,1,1], marker=".", color="Black",
+                        label=latexstring("\$t_0\$"), linestyle="None")
+            gcaplot.plot(gcatp.R[1,1,1], gcatp.R[2,1,1], marker=".", color="Black",
+                        label=latexstring("\$t_0\$"), linestyle="None")
+        else
+            fbplot.plot(fbtp.pos[1,i,1], fbtp.pos[2,i,1], marker=".", color="Black")
+            gcaplot.plot(gcatp.R[1,i,1], gcatp.R[2,i,1], marker=".", color="Black")
+        end
+    end
+
+    if labelling
+        fbplot.legend()
+        gcaplot.legend()
+    end
+
+end # function plotplasmoid
+
+
+function plotperiodictrajectoryRoCMI(pos, partidx, cm, colorrange)
+    extent = [1.0, 1.0, 1.0] # Hardcoded for now
+    posjumps = diff(pos, dims=2)
+    posjumps = @. abs(posjumps)
+    mask = @. isapprox(posjumps, extent, rtol=0.01)
+    indices = findall(mask[1:2, :])
+    numindices = length(indices)
+    if numindices > 0
+        j = 1
+        for s = 1:length(indices)
+            i = indices[s][2] # We only care about what time step the particle
+            # hit the boundary, not which boundary was crossed.
+            plt.plot(pos[1,j:i], pos[2,j:i], #color=cm(colorrange[partidx]),
+                        label="Particle $partidx")                       
+            j = i+1
+            break
+        end
+    else
+        plt.plot(pos[1,:], pos[2,:], #color=cm(colorrange[partidx]),
+                    label="Particle $partidx")
+    end
+end 
+#|
+function plotperiodictrajectoryRoCMI(pyaxes, pos, partidx, cm, colorrange)
+    extent = [1.0, 1.0, 1.0] # Hardcoded for now
+    posjumps = diff(pos, dims=2)
+    posjumps = @. abs(posjumps)
+    mask = @. isapprox(posjumps, extent, rtol=0.01)
+    indices = findall(mask[1:2, :])
+    numindices = length(indices)
+    if numindices > 0
+        j = 1
+        for s = 1:length(indices)
+            i = indices[s][2] # We only care about what time step the particle
+            # hit the boundary, not which boundary was crossed.
+            pyaxes.plot(pos[1,j:i], pos[2,j:i], #color=cm(colorrange[partidx]),
+                        label="Particle $partidx")                       
+            j = i+1
+            break
+        end
+    else
+        pyaxes.plot(pos[1,:], pos[2,:], #color=cm(colorrange[partidx]),
+                    label="Particle $partidx")
+    end
+end 
+
+
 
 end # module TPplots

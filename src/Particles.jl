@@ -14,6 +14,7 @@ module Particles
 using WorkingPrecision: wpFloat, wpInt
 using Constants: m_e, m_p, e
 using Utilities: norm3
+using Meshes
 
 
 #-------------#   
@@ -142,6 +143,7 @@ mutable struct GCAParticleSoA <: TraceParticle
         return new(R, vparal, μ, species, alive, weight)
     end # constructor 
 end # mutable struct ParticleSoA
+
 
 #----------------#
 # Base functions #
@@ -275,6 +277,97 @@ function setinitvel!(particles::ParticleSoA,
     particles.vel[:, partIdx, 1] .= vel
 end # function setinitvel
 
+
+#---------------------------#
+# Push particles a timestep #
+#-------------------------------------------------------------------------------
+function push!(
+    tp    ::GCAParticleSoA,
+    mesh  ::Mesh,
+    time  ::wpInt,
+    dt    ::wpFloat,
+    solver::Function,
+    interp::Function,
+    scheme::Function,
+    periodicBC::Tuple{Bool, Bool, Bool},
+    )
+    for j in eachindex(tp.alive)
+        if tp.alive[j] == false
+            continue
+        end
+        pos = tp.R[:,j,time]
+        vel = tp.vparal[j,time]
+        pos, vel = solver(
+            pos,
+            vel,
+            tp.μ[j],
+            tp.species[j],
+            mesh,
+            dt,
+            interp,
+            scheme,
+        )
+        checkboundary!(pos, tp.alive[j], periodicBC, mesh.domain)
+        tp.R[:,j,time+1] = pos
+        tp.vparal[j,time+1] = vel
+    end # loop over particles
+end # function push!
+#|
+function push!(
+    tp    ::ParticleSoA,
+    mesh  ::Mesh,
+    time  ::wpInt,
+    dt    ::wpFloat,
+    solver::Function,
+    interp::Function,
+    scheme::Function,
+    periodicBC::Tuple{Bool, Bool, Bool},
+    )
+    for j in eachindex(tp.alive)
+        if tp.alive[j] == false
+            continue
+        end
+        pos = tp.pos[:,j,time]
+        vel = tp.vel[:,j,time]
+        pos, vel = solver(
+            pos,
+            vel,
+            tp.species[j],
+            mesh,
+            dt,
+            interp,
+            scheme,
+        )
+        checkboundary!(pos, tp.alive[j], periodicBC, mesh.domain)
+        tp.pos[:,j,time+1] = pos
+        tp.vel[:,j,time+1] = vel
+    end # loop over particles
+end # function push!
+
+function checkboundary!(
+    pos       ::Vector{wpFloat},
+    alive     ::Bool,
+    periodicBC::Tuple{Bool, Bool, Bool},
+    domain    ::Matrix{wpFloat},
+    )
+    for k in 1:length(domain[:,1])
+        if pos[k] < domain[k,1]
+            if periodicBC[k] == true
+                pos[k] = domain[k, 2] + (pos[k] - domain[k, 1])
+            else
+                alive[j] = false # kill particle
+                break
+            end
+        elseif pos[k] > domain[k, 2]
+            if periodicBC[k] == true
+                pos[k] = domain[k, 1] + (pos[k] - domain[k, 2])
+            else
+                alive[j] = false # kill particle
+                break
+            end # if particle alive
+        end # if particle outside domain
+    end
+end # function checkboundary!
 
 #----------------------#
 # Auxiliary quantities #

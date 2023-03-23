@@ -89,68 +89,15 @@ end # mutable struct Patch
 #---------#---------------------------------------------------------------------
 function run!(patch::Patch)
     for i = 1:patch.numSteps # Over timesteps
-        for j = 1:patch.numParticles # Over particles
-            if patch.tp.alive[j] == false
-                continue
-            end # if !alive
-            # This if statement should be avoided by optimising run! towards
-            # particle types or define a general one with e.g. get functions or
-            # passing of particle type instead of positions and velocities.
-            if patch.solver == Solvers.GCA
-                pos = [patch.tp.R[:,j,i]; patch.tp.vparal[j,i]] 
-                vel = patch.tp.μ[j]
-            else 
-                pos = patch.tp.pos[:, j, i]
-                vel = patch.tp.vel[:, j, i]
-            end
-            pos, vel = patch.solver(pos,
-                                    vel,
-                                    patch.tp.species[j],
-                                    patch.mesh,
-                                    patch.dt,
-                                    patch.interpolator,
-                                    patch.scheme,
-                                    )
-            for k = 1:patch.mesh.numdims
-                if pos[k] < patch.mesh.domain[k, 1]
-                    if patch.periodicBC[k] == true
-                        pos[k] = patch.mesh.domain[k, 2] +
-                            (pos[k] - patch.mesh.domain[k, 1])
-                    else
-                        patch.tp.alive[j] = false # kill particle
-                        patch.tp.pos[:, j, i+2:patch.numSteps+1] .= 
-                            patch.tp.pos[:, j, i]
-                        patch.tp.vel[:, j, i+2:patch.numSteps+1] .= 
-                            patch.tp.vel[:, j, i]
-                        pos = patch.tp.pos[:, j, i]
-                        vel = patch.tp.vel[:, j, i]
-                        break
-                   end
-                elseif pos[k] > patch.mesh.domain[k, 2]
-                    if patch.periodicBC[k] == true
-                        pos[k] = patch.mesh.domain[k, 1] +
-                            (pos[k] - patch.mesh.domain[k, 2])
-                    else
-                        patch.tp.alive[j] = false # kill particle
-                        patch.tp.pos[:, j, i+2:patch.numSteps+1] .= 
-                            patch.tp.pos[:, j, i]
-                        patch.tp.vel[:, j, i+2:patch.numSteps+1] .= 
-                            patch.tp.vel[:, j, i]
-                        pos = patch.tp.pos[:, j, i]
-                        vel = patch.tp.vel[:, j, i]
-                        break
-                    end # if particle alive
-                end # if particle outside domain
-            end # loop dimensions
-            # See comment about GCA if-statement aboce.
-            if patch.solver == Solvers.GCA
-                patch.tp.R[:,j,i+1]    = pos
-                patch.tp.vparal[j,i+1] = vel
-            else 
-                patch.tp.pos[:, j, i+1] = pos
-                patch.tp.vel[:, j, i+1] = vel
-            end
-       end # loop over particles (j)
+        Particles.push!(patch.tp,
+                        patch.mesh,
+                        i,
+                        patch.dt,
+                        patch.solver,
+                        patch.interpolator,
+                        patch.scheme,
+                        patch.periodicBC,
+                        )
     end # loop over timesteps (i)
 end # function: run
 

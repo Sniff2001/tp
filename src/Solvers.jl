@@ -244,6 +244,7 @@ end # function GCA
 function GCA(
     pos         ::Vector{wpFloat},
     vel         ::wpFloat,
+    μ           ::wpFloat,
     specie      ::wpInt,
     mesh        ::Mesh,
     dt          ::wpFloat,
@@ -253,9 +254,8 @@ function GCA(
     # Extract particle mass and charge
     m = specieTable[specie, 1]
     q = specieTable[specie, 2]
-    μ = vel # Requires implementation
     #
-    statevector = [pos;]
+    statevector = [pos; vel]
     statevectorNext = scheme(statevector,
                              dt, 
                              eomGCA,

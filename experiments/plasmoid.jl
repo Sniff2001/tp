@@ -37,7 +37,8 @@ using Utilities
 #......................................................|
 numparticles = 10 # Number of particles to simulate    |
 dt = 0.001        # Time step [s]                      |
-tf = 2.3          # End time of simulation [s]         |
+tf = 2.9 #n=100   # End time of simulation [s]         |
+#tf = 2.3 #n=10    # End time of simulation [s]         |
 #......................................................|
 
 #...............................................
@@ -59,12 +60,15 @@ mass = specieTable[species[1], 1]
 vel0 = [0.5, 0.0, 0.0]
 velf = [0.5, 0.0, 0.0]
 # For manually determined positions and velocities
-posd = [0.13  0.20  0.25
-        0.03  0.05  0.12
-        0.00  0.00  0.00]
-veld = [0.50  0.50  0.50
-        0.00  0.00  0.00
-        0.00  0.00  0.00]
+posd = [0.13  0.23  0.265 0.20 # At n = (100,100,2)
+        0.03  0.05  0.12  0.04
+        0.00  0.00  0.00  0.00]
+#posd = [0.13  0.20  0.25  0.20  # At n = (10,10,2)
+#        0.03  0.05  0.12  0.04
+#        0.00  0.00  0.00  0.00]
+veld = [0.50  0.50  0.50  1.00
+        0.00  0.00  0.00  0.00
+        0.00  0.00  0.00  0.00]
 
 #...............................................
 # SPATIAL PARAMETERS (x, y, z)
@@ -74,6 +78,7 @@ xi0 = (0., 0., 0.)
 # Upper bound of the three spatial axes
 xif = (1., 1., 1.)
 # Grid resolution of the axes
+#n = (10, 10, 2)
 n = (100, 100, 2)
  
 #...............................................
@@ -100,6 +105,11 @@ scheme = Schemes.rk4       # Scheme for integrating the diff eqs.
 interp = Interpolations.trilinearGCA # Interpolation scheme
 pbc    = (true, true, true) # (x,y,z) Are mesh boundary conditions periodic?
 #-------------------------------------------------------------------------------
+seatpointsy = [0.1,0.17,0.23,0.28,0.32,0.34,0.35,0.36,0.37,0.375,0.38,0.39]
+seatpointsy = [seatpointsy; [0.40,0.42,0.48, 0.55, 0.62, 0.71, 0.95]]
+seatpoints = zeros(numdims, length(seatpointsy))
+seatpoints[1,:] .= 0.5
+seatpoints[2,:] .= seatpointsy
 
 
 #-------------------------------------------------------------------------------
@@ -112,7 +122,7 @@ pbc    = (true, true, true) # (x,y,z) Are mesh boundary conditions periodic?
 μ  = (μx, μy)
 σ  = (σx, σy)
 # Creating the vector potential also gives the axes of the experiment
-axes, gridsizes, A = Utilities.normal3Donlyz(xi0, xif, n, μ, σ)
+domainaxes, gridsizes, A = Utilities.normal3Donlyz(xi0, xif, n, μ, σ)
 # Derive the magnetic field from the curl of the vector-potential
 Bfield = Schemes.curl(A, gridsizes, Schemes.derivateCentral)
 # Scale the field
@@ -133,7 +143,7 @@ println("Number of time steps = $numSteps.")
 #-------------------------------------------------------------------------------
 # MESH CREATION
 # Create Mesh instance
-xx, yy, zz = axes
+xx, yy, zz = domainaxes
 mesh = Mesh(Bfield, Efield, xx, yy, zz)
 
 #-------------------------------------------------------------------------------
@@ -168,20 +178,16 @@ if solver == Solvers.GCA
     μ      = zeros(numparticles)
     for i = 1:numparticles
         m = specieTable[species[i], 1]
-        (B⃗, E⃗, ∇B), _ = grid(mesh,
+        (B⃗, E⃗, ∇B), _ = gridinterp(mesh,
                            interp,
                            R[:,i]
                            )
         B = norm(B⃗)
         b̂ = B⃗/B
-        display(b̂)
         v = norm(vel[:,i])
         vparal[i] = vel[:,i] ⋅ b̂
         vperp = √(v^2 - vparal[i]^2)
         #vperp = Solvers.drift(b̂, E⃗, ∇B, B, μ, q)
-        println("v      for $i: $v")
-        println("vparal for $i: $vparal")
-        println("vperp  for $i: $vperp")
         μ[i] = m*vperp^2/(2B)
     end
     particles = GCAParticleSoA(R, vparal, μ, species, numSteps)

@@ -17,7 +17,7 @@ using WorkingPrecision: wpInt, wpFloat
 using Constants:        c
 using Meshes:           Mesh          
 using Particles:        specieTable
-using Interpolations:   grid
+using Interpolations:   gridinterp
 using Schemes:          positionHalfStep
 
 """
@@ -39,9 +39,9 @@ function fullOrbit_interstaticfield(
     m = specieTable[specie, 1]
     q = specieTable[specie, 2]
     # Interpolate fields
-    fields, _ = grid(mesh,
-                  interpolator,
-                  pos)
+    fields, _ = gridinterp(mesh,
+                           interpolator,
+                           pos)
     B = fields[1]
     E = fields[2]
     #
@@ -101,9 +101,9 @@ function eomLorentzforce(
     x = statevector[1:mesh.numdims] # The position vector
     v = statevector[mesh.numdims+1:2mesh.numdims] # The velocity vector
     # Interpolate fields
-    fields, _ = grid(mesh,
-                  interpolator,
-                  x)
+    fields, _ = gridinterp(mesh,
+                           interpolator,
+                           x)
     B = fields[1]
     E = fields[2]
     dvdt = q/m * (E + v × B)
@@ -121,7 +121,8 @@ function fieldtracingforward(
     yy          ::Vector{wpFloat},
     zz          ::Vector{wpFloat}
     )
-    interpfield, _ = grid(vectorfield, interpolator, statevector, xx, yy, zz)
+    interpfield, _ = gridinterp(vectorfield, interpolator, statevector,
+                                xx, yy, zz)
     fieldstrength = norm(interpfield)
     fielddirection = interpfield ./ fieldstrength
     dsdt = fielddirection
@@ -136,7 +137,8 @@ function fieldtracingbackward(
     yy          ::Vector{wpFloat},
     zz          ::Vector{wpFloat}
     )
-    interpfield, _ = grid(vectorfield, interpolator, statevector, xx, yy, zz)
+    interpfield, _ = gridinterp(vectorfield, interpolator, statevector,
+                                xx, yy, zz)
     fieldstrength = norm(interpfield)
     fielddirection = interpfield ./ fieldstrength
     dsdt = -fielddirection
@@ -161,7 +163,7 @@ function relFullOrbitExplLeapFrog(pos         ::Vector{wpFloat},
     #
     posHalf = positionHalfStep(pos, vel, dt)
     # Interpolate fields to this location
-    fields, _ = grid(mesh,
+    fields, _ = gridinterp(mesh,
                   interpolator,
                   posHalf)
     bField = fields[1]
@@ -190,7 +192,7 @@ function GCA(pos         ::Vector{wpFloat},
              scheme      ::Function
              )
     # Interpolate fields to this location
-    fields, _ = grid(mesh, interpolator, pos)
+    fields, _ = gridinterp(mesh, interpolator, pos)
     # i, j k are cell corner indexes in mesh. Corresponding to the 
     #  position of the particle.
     bField = fields[1] # The magnetic field
@@ -275,7 +277,7 @@ function eomGCA(
     vparal = statevector[4] # Particle velocity parallel to the magnetic field
 
     # Interpolate fields to this location
-    fields, _ = grid(mesh, interpolator, R)
+    fields, _ = gridinterp(mesh, interpolator, R)
     # i, j k are cell corner indexes in mesh. Corresponding to the 
     #  position of the particle.
     B⃗ = fields[1] # The magnetic field
@@ -295,28 +297,12 @@ function eomGCA(
     dRperpdt = b̂/B × (-E⃗ + μ/q * ∇B) 
     dRdt = vparal*b̂ + dRperpdt
     
-    # How to store the perpendicular velocity? Would need to know b̂ at each R calculate
-    #   vperp at each R. Could be interesting to store this as an auxiliary variable
-    #   somehow, to se how the drift evolves.
+    # How to store the perpendicular velocity? Would need to know b̂ at
+    #   each R calculate vperp at each R. Could be interesting to store this
+    #   as an auxiliary variable somehow, to se how the drift evolves.
     dsdt = [dRdt; dvparaldt]
     return dsdt
 end # function GCA
 
-function drift(
-    b̂ ::Vector{wpFloat}, # Unit-vector pointing in the direction of the magnetic field
-    E⃗ ::Vector{wpFloat}, # The electrif field
-    ∇B::Vector{wpFloat}, # The gradient of the magnetic field
-    B ::wpFloat,         # The magnetic field strength
-    μ ::wpFloat,         # The magnetic moment of the particle
-    q ::wpFloat          # The charge of the particle
-    )
-end # function drift
-    
-
-
-
-function magneticFieldStrengthGradient(mesh, cellIdxI, cellIdxJ, cellIdxK)
-    return [0.0, 0.0, 0.0]
-end # function magneticFieldStrengthGradient
 
 end # module Solvers

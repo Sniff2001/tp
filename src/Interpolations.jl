@@ -14,7 +14,7 @@ module Interpolations
 using WorkingPrecision: wpFloat, wpInt
 using Meshes
 
-export grid
+export gridinterp
 export locateCell
 export trilinear
 
@@ -22,7 +22,7 @@ export trilinear
 #-----------------------#
 # Type of interpolation #
 #-------------------------------------------------------------------------------
-function grid(
+function gridinterp(
     vectorfield ::Array{wpFloat, 4},
     interpolator::Function,
     pos         ::Vector{wpFloat},
@@ -43,9 +43,9 @@ function grid(
         (x,y,z)
     )
     return interpolatedfield, i, j, k
-end # function grid
+end # function gridinterp
 #|
-function grid(
+function gridinterp(
     scalarfield ::Array{wpFloat, 3},
     interpolator::Function,
     pos         ::Vector{wpFloat},
@@ -66,9 +66,9 @@ function grid(
         (x,y,z)
     )
     return interpolatedfield, i, j, k
-end # function grid
+end # function gridinterp
 #|
-function grid(
+function gridinterp(
     mesh        ::Mesh,
     interpolator::Function,
     pos         ::Vector{wpFloat}
@@ -82,7 +82,7 @@ function grid(
     # Interpolate
     interpolatedfields = interpolator(mesh, (i,j,k), (x,y,z))
     return interpolatedfields, i, j, k
-end # function grid
+end # function gridinterp
 
 
 

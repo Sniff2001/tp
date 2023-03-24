@@ -379,22 +379,39 @@ function kineticenergy(particles::ParticleSoA)
     _, npart, N = size(particles.pos) 
     v = norm3(particles.vel) 
     Ek = zeros(npart, N)
-    for i = 1:npart
-        mass = specieTable[particles.species[i], 1]
-        @. Ek[i,:] = 0.5*mass*v[i,:]^2
-    end # loop i
+    for j = 1:npart
+        mass = specieTable[particles.species[j], 1]
+        @. Ek[j,:] = 0.5*mass*v[j,:]^2
+    end # loop j
     return Ek
 end # function kineticenergy
 #|
-function kineticenergy(particles::GCAParticleSoA)
+function kineticenergy(
+    particles::ParticleSoA,
+    mesh     ::Mesh,
+    interp   ::Function
+    )
+    return kineticenergy(particles)
+end 
+#|
+function kineticenergy(
+    particles::GCAParticleSoA,
+    mesh     ::Mesh,
+    interp   ::Function
+    )
     npart, N = size(particles.vparal) 
-    v = particles.vparal
+    mass = specieTable[particles.species[:], 1]
+    vperp = getvperp(particles.R, particles.μ, mass, mesh, interp)
     Ek = zeros(npart, N)
-    for i = 1:npart
-        mass = specieTable[particles.species[i], 1]
-        @. Ek[i,:] = 0.5*mass*v[i,:]^2
-    end # loop i
-    return Ek
+    Ekparal = zeros(npart, N)
+    Ekperp = zeros(npart, N)
+    for j = 1:npart
+        v2 = particles.vparal[j,:].^2 + vperp[j,:].^2
+        @. Ek[j,:] = 0.5*mass[j]*v2
+        @. Ekparal[j,:] = 0.5*mass[j]*particles.vparal[j,:]^2
+        @. Ekperp[j,:] = 0.5*mass[j]*vperp[j,:]^2
+    end # loop j
+    return Ek, Ekparal, Ekperp
 end # function kineticenergy
 
 

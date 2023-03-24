@@ -11,10 +11,13 @@
 
 module Particles
 
+using LinearAlgebra:    norm
+
 using WorkingPrecision: wpFloat, wpInt
-using Constants: m_e, m_p, e
-using Utilities: norm3
+using Constants:        m_e, m_p, e
+using Utilities:        norm3
 using Meshes
+using Interpolations
 
 
 #-------------#   
@@ -70,7 +73,7 @@ mutable struct ParticleSoA <: TraceParticle
     function ParticleSoA( # "Default" constructor
         pos    ::Array{wpFloat, 3},
         vel    ::Array{wpFloat, 3},
-        species::Vector{wpInt},   # Particle specie identifier (e.g. electron, proton)
+        species::Vector{wpInt},   # Particle specie ID (e.g. electron, proton)
         alive  ::Vector{Bool},
         weight ::Vector{wpFloat}
         )
@@ -98,9 +101,9 @@ end # mutable struct ParticleSoA
 
 mutable struct GCAParticleSoA <: TraceParticle
     R      ::Array{wpFloat, 3} # The position of the guiding centre
-    vparal ::Matrix{wpFloat}   # The velocity parallel to the magnetic field
+    vparal ::Matrix{wpFloat}   # Velocity parallel to the magnetic field
     μ      ::Vector{wpFloat}   # Magnetic moment μ of particle
-    species::Vector{wpInt}     # Particle specie identifier (e.g. electron, proton)
+    species::Vector{wpInt}     # Particle specie ID (e.g. electron, proton)
     alive  ::Vector{Bool}
     weight ::Vector{wpFloat}
     
@@ -393,5 +396,28 @@ function kineticenergy(particles::GCAParticleSoA)
     end # loop i
     return Ek
 end # function kineticenergy
+
+
+function getvperp(
+    R     ::Array{wpFloat, 3},
+    μ     ::Vector{wpFloat},
+    mass  ::Vector{wpFloat},
+    mesh  ::Mesh,
+    interp::Function,
+    )
+    _, nj, ni = size(R)
+    vperp = zeros(nj, ni)
+    for i = 1:ni
+        for j = 1:nj
+            bfield = gridinterp(mesh.bField, interp, R[:,j,i],
+                                mesh.xCoords, mesh.yCoords, mesh.zCoords
+                                )
+            B = norm(bfield)
+            vperp[j,i] = √(2μ[j]*B/mass[j])
+        end # loop over j: particles
+    end # loop over i: timesteps
+    return vperp
+end # function getvperp
+
 
 end # module particles

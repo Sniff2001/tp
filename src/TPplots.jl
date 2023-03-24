@@ -29,6 +29,7 @@ using Solvers
 
 export plt
 export plot
+export plotKE
 
 #------#
 # Mesh #
@@ -204,7 +205,6 @@ function plotperiodictrajectory(
     colorrange,
     )
     extent = domain[:,2] .- domain[:,1]
-    println(extent)
     posjumps = diff(pos, dims=2)
     posjumps = @. abs(posjumps)
     mask = @. isapprox(posjumps, extent, rtol=0.01)
@@ -237,8 +237,6 @@ function plot(
     )
 
     pos = getpos(patch.tp)
-    times = collect(range(0.0, step=patch.dt, length=patch.numSteps+1))
-    Ek = kineticenergy(patch.tp)
 
     fig, axes = plt.subplots(1,1)
 
@@ -276,14 +274,71 @@ function plot(
     axes.set_ylabel(latexstring("\$y\$"))
    
     # Make energy distribution-plots
-    numbins = 20
-    p1 = plotenergydistr(patch.tp, 1, numbins, "Initial energy")
-    p2 = plotenergydistr(patch.tp, patch.numSteps+1, numbins, "final energy")
-    Plots.plot(p1,p2)#p3,p4)
-
+    #numbins = 20
+    #p1 = plotenergydistr(patch.tp, 1, numbins, "Initial energy")
+    #p2 = plotenergydistr(patch.tp, patch.numSteps+1, numbins, "final energy")
+    #Plots.plot(p1,p2)#p3,p4)
 end # function plot
 
 
+function plotKE(
+    patch    ::Patch,
+    labelling::Bool=false,
+    )
+    # Calculate kinetic energy at each timestep
+    times = collect(range(0.0, step=patch.dt, length=patch.numSteps+1))
+    Ek = kineticenergy(patch.tp, patch.mesh, trilinear)
+    # Create figure and plot energies
+    fig, ax = plt.subplots(1,1)
+    plotKE(ax, Ek, times)
+    ax.set_xlabel("Time, s")
+    ax.set_ylabel("Energy, J")
+    ax.set_title("Kinetic energy")
+    if labelling
+        ax.legend()
+    end
+end # function plotKE
+#|
+function plotKE(
+    ax   ::plt.PyCall.PyObject,
+    Ek   ::Matrix{wpFloat},
+    times::Vector{wpFloat},
+    )
+    nj, ni = size(Ek)
+    for j = 1:nj
+        ax.plot(times, Ek[j,:])
+    end 
+end 
+#|
+function plotKE(
+    ax   ::plt.PyCall.PyObject,
+    Ek   ::Tuple{Matrix{wpFloat}, Matrix{wpFloat}, Matrix{wpFloat}},
+    times::Vector{wpFloat},
+    )
+    Ekk, Ekparal, Ekperp = Ek
+    nj, ni = size(Ekk)
+    cm = plt.get_cmap(:tab20)
+    colorrange = (0:nj) ./ nj
+    for j = 1:nj
+        ax.plot(times, Ekk[j,:], color=cm(colorrange[j]))
+        ax.plot(times, Ekparal[j,:], linestyle="--", color=cm(colorrange[j]))
+        ax.plot(times, Ekperp[j,:], linestyle=":", color=cm(colorrange[j]))
+    end 
+end 
+
+
+#-----------#
+# Particles #
+#-------------------------------------------------------------------------------
+function plotKE(
+    tp       ::ParticleSoA,
+    times    ::Vector{wpFloat},
+    mesh     ::Mesh,
+    labelling::Bool=false,
+    )
+    Ek = kineticenergy(tp)
+    
+end # function plotKE
 
 #---------------------#
 # Field line tracing  #

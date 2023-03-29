@@ -30,6 +30,7 @@ using Solvers
 export plt
 export plot
 export plotKE
+export plottraj
 
 #------#
 # Mesh #
@@ -155,6 +156,44 @@ function pcolormeshslice!(
 end # function colormeshslice
 
 
+function trajectoryslice!(
+    ax    ::plt.PyCall.PyObject,
+    patch ::Patch,
+    normal::String, 
+    labelling::Bool=false,
+    )
+    # Set variables depending on slice orientation
+    if normal == "x"
+        k = 1
+    elseif normal == "y"
+        k = 2
+    elseif normal == "z"
+        k = 3
+    else
+        println("Error: Plane not valid.")
+    end
+    pos = getpos(patch.tp)[1:end .!= k, :, :]
+    domain = patch.mesh.domain[1:end .!= k, :]
+    # Set colour-scheme
+    cm = plt.get_cmap(:tab20)
+    colorrange = (0:patch.numParticles) ./ patch.numParticles
+    for j = 1:patch.numParticles
+        plotperiodictrajectory(ax, pos[:,j,:],
+                               j, domain,
+                               cm, colorrange)
+    end
+    # Mark initial positions of particles
+    for j = 1:patch.numParticles
+        if j == 1
+            ax.plot(pos[1,1,1], pos[2,1,1], marker=".", color="Black",
+                        label=latexstring("\$t_0\$"), linestyle="None")
+        else
+            ax.plot(pos[1,j,1], pos[2,j,1], marker=".", color="Black")
+        end
+    end
+end # function trajectoryslice!
+
+
 #-----------#
 # Particles #
 #-------------------------------------------------------------------------------
@@ -233,6 +272,7 @@ end
 #-------------------------------------------------------------------------------
 function plot(
     patch    ::Patch,
+    normal  ::String="z",
     labelling::Bool=false
     )
 
@@ -245,21 +285,7 @@ function plot(
     # Make pcolormesh of magnetic field strength
     pcolormeshslice!(axes, patch.mesh, "z", 1)
     # Plot particle trajectories
-    cm = plt.get_cmap(:tab20)
-    colorrange = (0:patch.numParticles) ./ patch.numParticles
-    for i = 1:patch.numParticles
-        plotperiodictrajectory(axes, pos[:,i,:], i, patch.mesh.domain,
-                               cm, colorrange)
-    end
-    # Mark initial positions of particles
-    for i = 1:patch.numParticles
-        if i == 1
-            axes.plot(pos[1,1,1], pos[2,1,1], marker=".", color="Black",
-                        label=latexstring("\$t_0\$"), linestyle="None")
-        else
-            axes.plot(pos[1,i,1], pos[2,i,1], marker=".", color="Black")
-        end
-    end
+    trajectoryslice!(axes, patch, normal)
 
     # Set title and labelling
     if typeof(patch.tp) == ParticleSoA
@@ -270,9 +296,7 @@ function plot(
     if labelling
         axes.legend()
     end
-    axes.set_xlabel(latexstring("\$x\$"))
-    axes.set_ylabel(latexstring("\$y\$"))
-   
+    setcartesianaxes!(axes, normal)
     # Make energy distribution-plots
     #numbins = 20
     #p1 = plotenergydistr(patch.tp, 1, numbins, "Initial energy")
@@ -325,6 +349,27 @@ function plotKE(
         ax.plot(times, Ekperp[j,:], linestyle=":", color=cm(colorrange[j]))
     end 
 end 
+
+
+function plottraj(
+    patch::Patch,
+    normal   ::String="z",
+    labelling::Bool=false
+    )
+    fig, axes = plt.subplots(1,1)
+    trajectoryslice!(axes, patch, normal)
+    # Set title and labelling
+    if typeof(patch.tp) == ParticleSoA
+        axes.set_title("Full-orbit")
+    else
+        axes.set_title("GCA")
+    end
+    if labelling
+        axes.legend()
+    end
+    setcartesianaxes!(axes, normal)
+end 
+
 
 
 #-----------#
@@ -516,6 +561,26 @@ function plotfieldlines(
     end
     return lines, positions
 end
+
+
+#-----------#
+# Utilities #
+#-------------------------------------------------------------------------------
+function setcartesianaxes!(
+    ax::plt.PyCall.PyObject,
+    normal::String="z",
+    )
+    if normal == "x"
+        ax.set_xlabel(latexstring("\$y\$"))
+        ax.set_ylabel(latexstring("\$z\$"))
+    elseif normal == "y"
+        ax.set_xlabel(latexstring("\$x\$"))
+        ax.set_ylabel(latexstring("\$z\$"))
+    elseif normal == "z"
+        ax.set_xlabel(latexstring("\$x\$"))
+        ax.set_ylabel(latexstring("\$y\$"))
+    end
+end # function setcartesianaxes
 
 
 #---------------------------------------------------#

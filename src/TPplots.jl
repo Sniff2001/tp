@@ -160,6 +160,7 @@ function trajectoryslice!(
     ax    ::plt.PyCall.PyObject,
     patch ::Patch,
     normal::String, 
+    linestyle::String,
     labelling::Bool=false,
     )
     # Set variables depending on slice orientation
@@ -180,7 +181,8 @@ function trajectoryslice!(
     for j = 1:patch.numParticles
         plotperiodictrajectory(ax, pos[:,j,:],
                                j, domain,
-                               cm, colorrange)
+                               cm, colorrange,
+                               linestyle)
     end
     # Mark initial positions of particles
     for j = 1:patch.numParticles
@@ -242,6 +244,7 @@ function plotperiodictrajectory(
     domain ::Matrix{wpFloat},
     cm,
     colorrange,
+    linestyle::String,
     )
     extent = domain[:,2] .- domain[:,1]
     posjumps = diff(pos, dims=2)
@@ -255,14 +258,14 @@ function plotperiodictrajectory(
             i = indices[s][2] # We only care about what time step the particle
             # hit the boundary, not which boundary was crossed.
             ax.plot(pos[1,j:i], pos[2,j:i], color=cm(colorrange[partidx]),
-                        label="Particle $partidx")                       
+                    label="Particle $partidx", linestyle=linestyle)
             j = i+1
             break
         end
         ax.plot(pos[1,j:end], pos[2,j:end], color=cm(colorrange[partidx]))
     else
         ax.plot(pos[1,:], pos[2,:], color=cm(colorrange[partidx]),
-                    label="Particle $partidx")
+                    label="Particle $partidx", linestyle=linestyle)
     end
 end 
 
@@ -354,10 +357,11 @@ end
 function plottraj(
     patch::Patch,
     normal   ::String="z",
+    linestyle::String="solid",
     labelling::Bool=false
     )
     fig, axes = plt.subplots(1,1)
-    trajectoryslice!(axes, patch, normal)
+    trajectoryslice!(axes, patch, normal, linestyle)
     # Set title and labelling
     if typeof(patch.tp) == ParticleSoA
         axes.set_title("Full-orbit")

@@ -30,7 +30,9 @@ verbose = 4
     end # testset Unit tests
     
     @testset verbose = verbose ≥ 3 "Experiments" begin
-        include("experiments/testExBdrift.jl")
+        @testset verbose = true "ExB-drift" begin
+            include("experiments/testExBdrift.jl")
+        end # testset ExB-drift
     end # testset Experiments
 
 end # testset All test

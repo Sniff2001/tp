@@ -358,14 +358,14 @@ function checkboundary!(
             if periodicBC[k] == true
                 pos[k] = domain[k, 2] + (pos[k] - domain[k, 1])
             else
-                alive[j] = false # kill particle
+                alive = false # kill particle
                 break
             end
         elseif pos[k] > domain[k, 2]
             if periodicBC[k] == true
                 pos[k] = domain[k, 1] + (pos[k] - domain[k, 2])
             else
-                alive[j] = false # kill particle
+                alive = false # kill particle
                 break
             end # if particle alive
         end # if particle outside domain

@@ -288,7 +288,7 @@ function plot(
     # Make pcolormesh of magnetic field strength
     pcolormeshslice!(axes, patch.mesh, "z", 1)
     # Plot particle trajectories
-    trajectoryslice!(axes, patch, normal)
+    trajectoryslice!(axes, patch, normal, "-")
 
     # Set title and labelling
     if typeof(patch.tp) == ParticleSoA
@@ -305,6 +305,7 @@ function plot(
     #p1 = plotenergydistr(patch.tp, 1, numbins, "Initial energy")
     #p2 = plotenergydistr(patch.tp, patch.numSteps+1, numbins, "final energy")
     #Plots.plot(p1,p2)#p3,p4)
+    return fig, axes
 end # function plot
 
 

@@ -300,6 +300,41 @@ function createaxes(
 end # function createaxes
 
 
+function discretise!(
+    field::Array{wpFloat, 4},
+    xx   ::Vector{wpFloat},
+    yy   ::Vector{wpFloat},
+    zz   ::Vector{wpFloat},
+    func::Function
+    )
+    for i in eachindex(xx)
+        for j in eachindex(yy)
+            for k in eachindex(zz)
+                f = func(xx[i], yy[j], zz[k])
+                field[:,i,j,k] .= f
+            end
+        end
+    end
+end # function discretise
+#|
+function discretise!(
+    field::Array{wpFloat, 3},
+    xx  ::Vector{wpFloat},
+    yy  ::Vector{wpFloat},
+    zz  ::Vector{wpFloat},
+    func::Function
+    )
+    for i in eachindex(xx)
+        for j in eachindex(yy)
+            for k in eachindex(zz)
+                f = func(xx[i], yy[j], zz[k])
+                field[i,j,k] = f
+            end
+        end
+    end
+end # function discretise
+
+
 """
     normal3Donlyz((x0, y0, z0), 
                   (xf, yf, zf), 

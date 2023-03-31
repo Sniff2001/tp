@@ -81,17 +81,33 @@ mutable struct ParticleSoA <: TraceParticle
     end # constructor 
     #|
     function ParticleSoA(
-        pos     ::Matrix{wpFloat},
-        vel     ::Matrix{wpFloat},
+        pos0     ::Matrix{wpFloat},
+        vel0     ::Matrix{wpFloat},
         species ::Vector{wpInt},
         numSteps::Integer
         )
-        numDims, numParticles = size(pos)
-        numVels, numParticles = size(vel)
+        numDims, numParticles = size(pos0)
         positions  = zeros(wpFloat, numDims, numParticles, numSteps + 1)
-        velocities = zeros(wpFloat, numVels, numParticles, numSteps + 1)
-        positions[:, :, 1] .= pos
-        velocities[:, :, 1] .= vel
+        velocities = zeros(wpFloat, numDims, numParticles, numSteps + 1)
+        positions[:, :, 1] .= pos0
+        velocities[:, :, 1] .= vel0
+        alive = ones(Bool, numParticles)
+        weight = ones(wpFloat, numParticles)
+        return new(positions, velocities, species, alive, weight)
+    end # constructor 
+    #|
+    function ParticleSoA(
+        pos0    ::Vector{wpFloat},
+        vel0    ::Vector{wpFloat},
+        species ::Vector{wpInt},
+        numSteps::Integer
+        )
+        numParticles = 1
+        numDims = length(pos0)
+        positions  = zeros(wpFloat, numDims, numParticles, numSteps + 1)
+        velocities = zeros(wpFloat, numDims, numParticles, numSteps + 1)
+        positions[:, :, 1] .= pos0
+        velocities[:, :, 1] .= vel0
         alive = ones(Bool, numParticles)
         weight = ones(wpFloat, numParticles)
         return new(positions, velocities, species, alive, weight)
@@ -130,21 +146,39 @@ mutable struct GCAParticleSoA <: TraceParticle
     end # constructor 
     #|
     function GCAParticleSoA( # Given only initial conditions
-        initR     ::Matrix{wpFloat},
-        initvparal::Vector{wpFloat},
-        μ         ::Vector{wpFloat},
-        species   ::Vector{wpInt},
-        numSteps  ::Integer
+        R0      ::Matrix{wpFloat},
+        vparal0 ::Vector{wpFloat},
+        μ       ::Vector{wpFloat},
+        species ::Vector{wpInt},
+        numSteps::Integer
         )
-        numDims, numParticles = size(initR)
+        numDims, numParticles = size(R0)
         R      = zeros(wpFloat, numDims, numParticles, numSteps + 1)
         vparal = zeros(wpFloat, numParticles, numSteps + 1)
-        R[:, :, 1] .= initR
-        vparal[:, :, 1] .= initvparal
+        R[:, :, 1] .= R0
+        vparal[:, :, 1] .= vparal0
         alive = ones(Bool, numParticles)
         weight = ones(wpFloat, numParticles)
         return new(R, vparal, μ, species, alive, weight)
     end # constructor 
+    #|
+    function GCAParticleSoA( # Given only initial conditions
+        R0      ::Vector{wpFloat},
+        vparal0 ::Vector{wpFloat},
+        μ       ::Vector{wpFloat},
+        species ::Vector{wpInt},
+        numSteps::Integer
+        )
+        numParticles = 1
+        numDims = length(R0)
+        R      = zeros(wpFloat, numDims, numParticles, numSteps + 1)
+        vparal = zeros(wpFloat, numParticles, numSteps + 1)
+        R[:, :, 1] .= R0
+        vparal[:, :, 1] .= vparal0
+        alive = ones(Bool, numParticles)
+        weight = ones(wpFloat, numParticles)
+        return new(R, vparal, μ, species, alive, weight)
+    end # constructor
 end # mutable struct ParticleSoA
 
 

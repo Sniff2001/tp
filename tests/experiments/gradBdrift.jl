@@ -5,8 +5,15 @@
 #                 gradBdrift.jl
 #
 #-------------------------------------------------------------------------------
-# This experiment tests both the full orbit and GCA solvers against gradient B
-# drift.
+# This experiment tests the ∇B-drift term in the GCA against the full orbit
+# solution in a static magnetic field where the gradient is perpendicular to the
+# magnetic field direction. The parameters yield a Larmor radius that is much
+# smaller than the characteristic length scale of the magnetic field
+# gradient, such that the GCA is valid. The solutions is also compared to the
+# approximate gradient drift presented in e.g. Chen (2016) or Aschwanden (2006).
+#
+# To be able to compare the GCA and full orbit, the simulation duration has to
+# be a multiple of the gyration period.
 #-------------------------------------------------------------------------------
 
 using LinearAlgebra
@@ -14,7 +21,6 @@ using Test
 
 # Import internal modules from tp/src
 using WorkingPrecision: wpFloat, wpInt
-using Constants:        k_B
 using Meshes:           Mesh
 using Patches:          Patch, run!
 using Particles:        ParticleSoA, GCAParticleSoA, kineticenergy, specieTable
@@ -30,8 +36,11 @@ using Utilities
 # NUMBER OF PARTICLES, SIMULATION DURATION, TIMESTEP   |
 #......................................................|
 numparticles = 1  # Number of particles to simulate    |
-dt = 0.02          # Time step [s]                      |
-tf = 5.0 #n=100   # End time of simulation [s]         |
+dt = 0.01         # Time step [s]                      |
+# Use a final time equal to 10 gyrations for the full  |
+# orbit, according to the parameters set (mass, charge,|
+# vel0, pos0, B0, a)                                   |
+tf = 10*1/1.7507  # End time of simulation [s]         |
 #tf = 2.3 #n=10   # End time of simulation [s]         |
 #......................................................|
 
@@ -42,7 +51,7 @@ species = 4*ones(wpInt, numparticles) # Specifies the species of the particles
 #...............................................
 # INITIAL CONDITIONS
 pos0 = [0.5, 0.5, 0.5]
-vel0 = [0.0, 0.3, 0.0]
+vel0 = [0.0, 0.1, 0.0]
 
 #...............................................
 # SPATIAL PARAMETERS (x, y, z)
@@ -58,7 +67,7 @@ ni = (100, 100, 2)
 #...............................................
 # MAGNETIC FIELD PARAMETERS
 a = 10.0 # gradient in magnetic field
-B0 = 0.0 # Additional constant
+B0 = 6.0 # Additional constant
 function gradBfield(
     x::wpFloat,
     y::wpFloat,
@@ -104,7 +113,7 @@ mesh = Mesh(Bfield, Efield, xx, yy, zz)
 # SIMULATION DURATION
 #
 numsteps = trunc(wpInt, tf/dt)   # Number of timesteps in the simulation
-println("Number of time steps = $numsteps.")
+#println("Number of time steps = $numsteps.")
 
 #-------------------------------------------------------------------------------
 # PARTICLE CREATION
@@ -149,18 +158,29 @@ patchGCA = Patch(mesh,
 
 #...............................................................................
 # RUN SIMULATION
-@time run!(patchFO)
-@time run!(patchGCA)
+run!(patchFO)
+run!(patchGCA)
 #...............................................................................
 
 
 #-------------------------------------------------------------------------------
 # TESTING
 charge = specieTable[species[1], 2]
+# Initial gyrofrequency
+B = norm(gradBfield(pos0[1],pos0[2],pos0[3]))
+vperp = √(vel0[1]^2 + vel0[2]^2)
+f = charge*B/(mass*2π)
+rL = mass*vperp/(charge*B)
+L = a/B
 vdrift = [-a*mass*vel0[2]^2/(2charge*B^2), 0.0, 0.0]
 posf_anal = tf*vdrift + pos0
-posf_num  = patchGCA.tp.R[:,1,end]
+posf_GCA  = patchGCA.tp.R[:,1,end]
+posf_FO   = patchFO.tp.pos[:,1,end]
 @testset verbose = true "GCA: Euler" begin
-    @test posf_anal ≈ posf_num
+    @test isapprox(posf_anal,posf_GCA, rtol=0.0001)
+    @test isapprox(posf_FO,posf_GCA, rtol=0.001)
+end # testset GCA: Euler
+@testset verbose = true "Full orbit: RK4" begin
+    @test isapprox(posf_anal,posf_FO, rtol=0.001)
 end # testset GCA: Euler
     

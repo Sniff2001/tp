@@ -276,8 +276,11 @@ function rejectionsampling(
         return positions, acceptencerate
     end
 end # function rejection sampling
-#------------------------------#
-# Vector potential generation  #
+
+
+#----------------------------------------#
+# Vector potential generation            #
+# Mesh generation from analytical fields #
 #-------------------------------------------------------------------------------
 function createaxes(
     (x0, y0, z0)::Tuple{wpFloat, wpFloat, wpFloat},
@@ -305,12 +308,13 @@ function discretise!(
     xx   ::Vector{wpFloat},
     yy   ::Vector{wpFloat},
     zz   ::Vector{wpFloat},
-    func::Function
+    func::Function,
+    args...
     )
     for i in eachindex(xx)
         for j in eachindex(yy)
             for k in eachindex(zz)
-                f = func(xx[i], yy[j], zz[k])
+                f = func(xx[i], yy[j], zz[k], args...)
                 field[:,i,j,k] .= f
             end
         end
@@ -322,12 +326,13 @@ function discretise!(
     xx  ::Vector{wpFloat},
     yy  ::Vector{wpFloat},
     zz  ::Vector{wpFloat},
-    func::Function
+    func::Function,
+    args...
     )
     for i in eachindex(xx)
         for j in eachindex(yy)
             for k in eachindex(zz)
-                f = func(xx[i], yy[j], zz[k])
+                f = func(xx[i], yy[j], zz[k], args...)
                 field[i,j,k] = f
             end
         end

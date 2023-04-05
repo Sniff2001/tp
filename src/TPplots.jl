@@ -31,6 +31,9 @@ export plt
 export plot
 export plotKE
 export plottraj
+export streamplotslice!
+export pcolormeshslice!
+export trajectoryslice!
 
 #------#
 # Mesh #
@@ -275,7 +278,8 @@ end
 #-------------------------------------------------------------------------------
 function plot(
     patch    ::Patch,
-    normal  ::String="z",
+    normal   ::String="z",
+    point    ::wpInt=1,
     labelling::Bool=false
     )
 
@@ -284,9 +288,9 @@ function plot(
     fig, axes = plt.subplots(1,1)
 
     # Make streamplot of magnetic field
-    streamplotslice!(axes, patch.mesh, "z", 1)
+    streamplotslice!(axes, patch.mesh, normal, point)
     # Make pcolormesh of magnetic field strength
-    pcolormeshslice!(axes, patch.mesh, "z", 1)
+    pcolormeshslice!(axes, patch.mesh, normal, point)
     # Plot particle trajectories
     trajectoryslice!(axes, patch, normal, "-")
 

@@ -340,6 +340,18 @@ function discretise!(
 end # function discretise
 
 
+function mirroringfield(
+    x::wpFloat,
+    y::wpFloat,
+    z::wpFloat,
+    B0::wpFloat,
+    L ::wpFloat,
+    )
+    a = B0*z/L^2
+    return [-x*a, -y*a, B0 + z*a]
+end # mirroringfield
+
+
 """
     normal3Donlyz((x0, y0, z0), 
                   (xf, yf, zf), 

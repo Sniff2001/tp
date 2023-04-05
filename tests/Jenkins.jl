@@ -35,7 +35,10 @@ verbose = 4
         end # testset ExB-drift
         @testset verbose = true "∇B-drift" begin
             include("experiments/gradBdrift.jl")
-        end # testset ExB-drift
+        end # testset ∇B-drift
+        @testset verbose = true "Mirroring" begin
+            include("experiments/mirroring.jl")
+        end # testset mirroring
 
     end # testset Experiments
 

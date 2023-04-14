@@ -352,6 +352,16 @@ function mirroringfield(
 end # mirroringfield
 
 
+function dipolefield(
+    x::wpFloat,
+    y::wpFloat,
+    z::wpFloat,
+    M ::wpFloat,
+    )
+    a = M/(x^2 + y^2 + z^2)^(5/2)
+    return [3a*z*x, 3a*z*y, a*(2z^2 - x^2 - y^2)]
+end # function dipolefield
+
 """
     normal3Donlyz((x0, y0, z0), 
                   (xf, yf, zf), 

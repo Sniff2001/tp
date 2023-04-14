@@ -30,10 +30,12 @@ using Solvers
 export plt
 export plot
 export plotKE
+export plot3D
 export plottraj
 export streamplotslice!
 export pcolormeshslice!
 export trajectoryslice!
+export trajectory3D!
 
 #------#
 # Mesh #
@@ -198,6 +200,38 @@ function trajectoryslice!(
     end
 end # function trajectoryslice!
 
+
+function trajectory3D!(
+    ax       ::plt.PyCall.PyObject,
+    patch    ::Patch,
+    linestyle::String="-",
+    labelling::Bool=false,
+    )
+    # It seems that a 3D-projected PyPlot does not support more than ~16300
+    # points per graph. Hence we have to skip some data
+    skip = trunc(wpInt, ceil(patch.numSteps/16_000))
+    if skip == 0
+        skip = 1
+    end
+    pos = getpos(patch.tp)
+    for j = 1:patch.numParticles
+        ax.plot(pos[1, j, 1:skip:end],
+                pos[2,j,1:skip:end],
+                pos[3,j,1:skip:end],
+                linestyle=linestyle)
+    end # loop over particles
+    # Mark initial positions of particles
+    for j = 1:patch.numParticles
+        if j == 1
+            ax.plot(pos[1,1,1], pos[2,1,1], pos[3,1,1], marker=".",
+                    color="Black", label=latexstring("\$t_0\$"),
+                    linestyle="None")
+        else
+            ax.plot(pos[1,j,1], pos[2,j,1], pos[3,j,1],
+                    marker=".", color="Black")
+        end
+    end
+end #function trajectory3D!
 
 #-----------#
 # Particles #
@@ -379,6 +413,21 @@ function plottraj(
     setcartesianaxes!(axes, normal)
 end 
 
+
+function plot3D(
+    patch::Patch,
+    linestyle::String="solid",
+    labelling::Bool=false
+    )
+    fig = plt.figure()
+    ax = fig.add_subplot(projection="3d")
+    ax.set_xlabel(latexstring("\$x\$"))
+    ax.set_ylabel(latexstring("\$y\$"))
+    ax.set_zlabel(latexstring("\$z\$"))
+    ax.set_title("Particle trajectories")
+    trajectory3D!(ax, patch, linestyle, labelling)
+    return fig, ax
+end # function plot3D
 
 
 #-----------#

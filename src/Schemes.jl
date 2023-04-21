@@ -246,10 +246,51 @@ end # function derivate4thOrder
 
 """
     ∇(field, dx, dy, dz, scheme)
-The gradient operator. Calucaletes the gradient of a 3-dimensional scalar
-field. Requires grid spacing on all three axis and the numerical scheme as
-arguments. The scheme is given as a function type, e.g. Schemes.derivateCentral.
+The gradient operator. Calucaletes the gradient of a 3- or 2-dimensional scalar
+field and the Jacobian of a 3D vector field. Requires grid spacing on all three 
+axis and the numerical scheme as arguments. The scheme is given as a function 
+type, e.g. Schemes.derivateCentral.
 """
+function ∇(field::Array{wpFloat, 4},
+           dx   ::wpFloat,
+           dy   ::wpFloat,
+           dz   ::wpFloat,
+           scheme::Function
+           )
+    fx = field[1,:,:,:]
+    fy = field[2,:,:,:]
+    fz = field[3,:,:,:]
+    #
+    ∂fx∂x = scheme(fx, dx, (1,0,0))
+    ∂fx∂y = scheme(fx, dy, (0,1,0))
+    ∂fx∂z = scheme(fx, dz, (0,0,1))
+    #
+    ∂fy∂x = scheme(fy, dx, (1,0,0))
+    ∂fy∂y = scheme(fy, dy, (0,1,0))
+    ∂fy∂z = scheme(fy, dz, (0,0,1))
+    #
+    ∂fz∂x = scheme(fz, dx, (1,0,0))
+    ∂fz∂y = scheme(fz, dy, (0,1,0))
+    ∂fz∂z = scheme(fz, dz, (0,0,1))
+    #
+    _, nx, ny, nz = size(field)
+    jacobian = zeros(3, 3, nx, ny, nz)
+    #
+    jacobian[1, 1, :,:,:] = ∂fx∂x
+    jacobian[1, 2, :,:,:] = ∂fx∂y
+    jacobian[1, 3, :,:,:] = ∂fx∂z
+    #
+    jacobian[2, 1, :,:,:] = ∂fy∂x
+    jacobian[2, 2, :,:,:] = ∂fy∂y
+    jacobian[2, 3, :,:,:] = ∂fy∂z
+    #
+    jacobian[3, 1, :,:,:] = ∂fz∂x
+    jacobian[3, 2, :,:,:] = ∂fz∂y
+    jacobian[3, 3, :,:,:] = ∂fz∂z
+    #
+    return jacobian
+end # function ∇ 
+#|
 function ∇(field::Array{wpFloat, 3},
            dx   ::wpFloat,
            dy   ::wpFloat,
@@ -265,7 +306,7 @@ function ∇(field::Array{wpFloat, 3},
     gradient[2, :, :, :] = ∂f∂y
     gradient[3, :, :, :] = ∂f∂z
     return gradient
-end # functin ∇ 
+end # function ∇ 
 #|
 function ∇(field::Array{wpFloat, 2},
            dx   ::wpFloat,

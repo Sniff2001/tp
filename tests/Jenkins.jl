@@ -39,6 +39,9 @@ verbose = 4
         @testset verbose = true "Mirroring" begin
             include("experiments/mirroring.jl")
         end # testset mirroring
+        @testset verbose = true "Dipole" begin
+            include("experiments/dipoleloop.jl")
+        end # testset mirroring
 
     end # testset Experiments
 

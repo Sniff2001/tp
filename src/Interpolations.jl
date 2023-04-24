@@ -23,7 +23,7 @@ export trilinear
 # Type of interpolation #
 #-------------------------------------------------------------------------------
 function gridinterp(
-    vectorfield ::Array{wpFloat, 4},
+    tensorfield ::AbstractArray{wpFloat},
     interpolator::Function,
     pos         ::Vector{wpFloat},
     xx          ::Vector{wpFloat},
@@ -37,30 +37,7 @@ function gridinterp(
     j = locateCell(yy, y)
     k = locateCell(zz, z)
     interpolatedfield = interpolator(
-        vectorfield,
-        xx, yy, zz,
-        (i,j,k),
-        (x,y,z)
-    )
-    return interpolatedfield, i, j, k
-end # function gridinterp
-#|
-function gridinterp(
-    scalarfield ::Array{wpFloat, 3},
-    interpolator::Function,
-    pos         ::Vector{wpFloat},
-    xx          ::Vector{wpFloat},
-    yy          ::Vector{wpFloat},
-    zz          ::Vector{wpFloat}
-    )
-    numDims = 3
-    x, y, z = pos
-    # Find which cell the position is in, and store the indices of its corner.
-    i = locateCell(xx, x)
-    j = locateCell(yy, y)
-    k = locateCell(zz, z)
-    interpolatedfield = interpolator(
-        scalarfield,
+        tensorfield,
         xx, yy, zz,
         (i,j,k),
         (x,y,z)
@@ -120,10 +97,10 @@ end # function locateCell
 # Interpolation steps #
 #-------------------------------------------------------------------------------
 function trilinear( # Arbitrary vector-field
-    vectorfield::Array{wpFloat, 4},
-    xx         ::Vector{wpFloat},
-    yy         ::Vector{wpFloat},
-    zz         ::Vector{wpFloat},
+    tensorfield ::AbstractArray{wpFloat},
+    xx          ::Vector{wpFloat},
+    yy          ::Vector{wpFloat},
+    zz          ::Vector{wpFloat},
     (i,j,k)::Tuple{wpInt, wpInt, wpInt},
     (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
     )
@@ -132,26 +109,7 @@ function trilinear( # Arbitrary vector-field
                                          zz,
                                          (i,j,k),
                                          (x,y,z))
-    f = trilinearsum(vectorfield,
-                     (i,j,k),
-                     coefficients)
-    return f
-end # function trilinear
-#|
-function trilinear( # Arbitrary scalar-field
-    scalarfield::Array{wpFloat, 3},
-    xx         ::Vector{wpFloat},
-    yy         ::Vector{wpFloat},
-    zz         ::Vector{wpFloat},
-    (i,j,k)::Tuple{wpInt, wpInt, wpInt},
-    (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
-    )
-    coefficients = trilinearcoefficients(xx,
-                                         yy,
-                                         zz,
-                                         (i,j,k),
-                                         (x,y,z))
-    f = trilinearsum(scalarfield,
+    f = trilinearsum(tensorfield,
                      (i,j,k),
                      coefficients)
     return f
@@ -221,6 +179,24 @@ function trilinearcoefficients(
     return c0, c1, c2, c3, c4, c5, c6, c7
 end # function trinlinearcoefficients
 
+function trilinearsum(
+    tensorfield::Array{wpFloat, 5},
+    (i,j,k)    ::Tuple{wpInt, wpInt, wpInt},
+    c          ::NTuple{8, wpFloat}
+    )
+    c0, c1, c2, c3, c4, c5, c6, c7 = c
+    A0 = tensorfield[:, :,   i,   j,   k]
+    A1 = tensorfield[:, :, i+1,   j,   k]
+    A2 = tensorfield[:, :, i+1, j+1,   k]
+    A3 = tensorfield[:, :,   i, j+1,   k]
+    A4 = tensorfield[:, :,   i,   j, k+1]
+    A5 = tensorfield[:, :, i+1,   j, k+1]
+    A6 = tensorfield[:, :, i+1, j+1, k+1]
+    A7 = tensorfield[:, :,   i, j+1, k+1]
+    A  = c0*A0 + c1*A1 + c2*A2 + c3*A3 + c4*A4 + c5*A5 + c6*A6 + c7*A7
+    return A
+end # function trilinearsum
+#|
 function trilinearsum(
     vectorfield::Array{wpFloat, 4},
     (i,j,k)    ::Tuple{wpInt, wpInt, wpInt},

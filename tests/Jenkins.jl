@@ -45,7 +45,6 @@ verbose = 4
         @testset verbose = true "Speiser (1965)" begin
             include("experiments/speiser1965.jl")
         end # testset Speiser 1965
-
     end # testset Experiments
 
 end # testset All test

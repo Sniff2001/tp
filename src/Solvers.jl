@@ -283,18 +283,31 @@ function eomGCA(
     B⃗ = fields[1] # The magnetic field
     E⃗ = fields[2] # The electric field
     ∇B = fields[3]     # The gradient of the magnetic field.
+    ∇b̂ = fields[4]
+    ∇ExB = fields[5]
     local B = norm(B⃗)   # The magnetic field strength
     b̂ = B⃗/B       # An unit vector pointing in the direction of the
                        #  magnetic field
     # Electric field component parallel to the magnetic field
     Eparal = E⃗⋅b̂ 
+    # Calculate drifts
+    ExBdrift = (E⃗ × b̂)/B
+    ∇Bdrift = μ/(q*B)*(b̂ × ∇B)
+    # Total time derivatives. Assumes ∂/∂t = 0,
+    db̂dt = vparal * (∇b̂ * b̂) + ∇b̂*ExBdrift
+    dExBdt = vparal * (∇ExB * b̂) + ∇ExB*ExBdrift
     
+    # Compute the perpendicular velcoity
+    dRperpdt = ExBdrift + ∇Bdrift + m*b̂/(q*B) × (vparal*db̂dt + dExBdt)
+    #dRperpdt = b̂/B × (-E⃗ + μ/q*∇B + m/q*(vparal*db̂dt + dExBdt))  # old
+
     # Compute the acceleration 
     dvparaldt = (q*Eparal - μ*b̂⋅∇B)/m # along the magnetic field lines
-    # With spatially changing fields, the velocity at this point will not be the
-    # same as the last, independent of time.
-    #dRperpdt = b̂/B × (-c*E⃗ + μ*c/q * ∇B)
-    dRperpdt = b̂/B × (-E⃗ + μ/q * ∇B) 
+    # With correction proposed by Birn et al., 2004:
+    #dvparaldt = (q*Eparal - μ*b̂⋅∇B)/m + ExBdrift⋅db̂dt + ∇Bdrift⋅db̂dt
+    #dRperpdt = b̂/B × (-c*E⃗ + μ*c/q * ∇B) #old
+
+    # Compute the velocity
     dRdt = vparal*b̂ + dRperpdt
     
     # How to store the perpendicular velocity? Would need to know b̂ at

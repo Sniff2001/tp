@@ -153,7 +153,14 @@ function trilinearGCA(
     ∇B = trilinearsum(mesh.∇B,
                               (i,j,k),
                               coefficients)
-    return B, E, ∇B
+    ∇b̂ = trilinearsum(mesh.∇b̂,
+                              (i,j,k),
+                              coefficients)
+    ∇ExB = trilinearsum(mesh.∇ExB,
+                              (i,j,k),
+                              coefficients)
+
+    return B, E, ∇B, ∇b̂, ∇ExB
 end # function trilinearGCA
 
 function trilinearcoefficients(

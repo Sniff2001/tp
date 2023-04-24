@@ -11,7 +11,7 @@
 
 module Particles
 
-using LinearAlgebra:    norm
+using LinearAlgebra:    norm, ⋅
 
 using WorkingPrecision: wpFloat, wpInt
 using Constants:        m_e, m_p, e
@@ -33,15 +33,18 @@ export reset!      # Resets particle positions to zero (except initial position)
 export setinitpos! # Sets the initial position of particles
 export setinitvel! # Sets the initial velocity of particles
 export kineticenergy # Computes the non-rel. kinetic energy at all time steps
+export computeμ
 
 #------------------#
 # Global variables #
 #------------------#------------------------------------------------------------
 #              mass charge
-specieTable = [m_e  -e     # Electron
-               m_p   e     # Proton
-               1.0 3.0     # Unit mass and charge = 3
-               1.0 1.0]    # Unit mass and charge
+specieTable = [m_e   -e     # Electron
+               m_p    e     # Proton
+               1.0  3.0     # Unit mass and charge = 3
+               1.0  1.0     # Unit mass and charge
+               1.0 -1.0     # Unit mass and negative unit charge
+               ]
 
 #-------------#   
 # Structs     # 
@@ -456,13 +459,13 @@ function getvperp(
     mesh  ::Mesh,
     interp::Function,
     )
-    _, nj, ni = size(R)
-    vperp = zeros(nj, ni)
-    for i = 1:ni
-        for j = 1:nj
-            bfield = gridinterp(mesh.bField, interp, R[:,j,i],
-                                mesh.xCoords, mesh.yCoords, mesh.zCoords
-                                )
+    _, numparticles, numsteps = size(R)
+    vperp = zeros(numparticles, numsteps)
+    for i = 1:numsteps
+        for j = 1:numparticles
+            bfield, _ = gridinterp(mesh.bField, interp, R[:,j,i],
+                                   mesh.xCoords, mesh.yCoords, mesh.zCoords
+                                   )
             B = norm(bfield)
             vperp[j,i] = √(2μ[j]*B/mass[j])
         end # loop over j: particles
@@ -470,5 +473,40 @@ function getvperp(
     return vperp
 end # function getvperp
 
+"""
+    computeμ(
+        tp::ParticleSoA,
+        mesh::Mesh,
+        intep::Function,
+        )
+Calculates and returns μ for all particles at all time steps by
+interpolating to the particle positions. This is a post-processing procudureand
+is only accurate if the same interpolation method is used as in the simulation
+itself.
+"""
+function computeμ(
+    tp::ParticleSoA,
+    mesh::Mesh,
+    interp::Function,
+    )
+    m = specieTable[tp.species, 1]
+    _, numparticles, numsteps = size(tp.pos)
+    μ = zeros(numparticles, numsteps)
+    for i = 1:numsteps
+        for j = 1:numparticles
+            v⃗ = tp.vel[:,j,i]
+            r⃗ = tp.pos[:,j,i]
+            bfield, _ = gridinterp(mesh.bField, interp, r⃗,
+                                   mesh.xCoords, mesh.yCoords, mesh.zCoords
+                                   )
+            B = norm(bfield)
+            b̂ = bfield/B
+            vparal = v⃗⋅b̂
+            vperp =  norm(v⃗ - vparal*b̂)
+            μ[j,i] = 0.5*m[j]*vperp^2/B
+        end # loop over j: particles
+    end # loop over i: timesteps
+    return μ
+end # function computeμ
 
 end # module particles

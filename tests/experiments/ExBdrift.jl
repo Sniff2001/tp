@@ -324,9 +324,9 @@ end # testset Euler-Cromer
 end # testset Vay
 #
 @testset verbose = true "GCA: RK4" begin
-    @test patchGCA.tp.R[1,1,end] ≈ 0.02
-    @test patchGCA.tp.R[2,1,end] ≈ 0.00
-    @test patchGCA.tp.R[3,1,end] ≈ 0.00
+    @test isapprox(patchGCA.tp.R[1,1,end], 0.02, rtol=1e-13)
+    @test isapprox(patchGCA.tp.R[2,1,end], 0.00, atol=1e-15)
+    @test isapprox(patchGCA.tp.R[3,1,end], 0.00, atol=1e-15)
 end # testset GCA: RK4
 
 

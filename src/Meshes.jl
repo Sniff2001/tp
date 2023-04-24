@@ -11,6 +11,7 @@
 
 module Meshes
 
+using LinearAlgebra:    ×
 using WorkingPrecision: wpFloat, wpInt
 using Schemes:          derivate4thOrder, derivateCentral, ∇
 using Utilities:        norm4
@@ -27,6 +28,8 @@ struct Mesh
     bField ::AbstractArray{wpFloat} # The magnetic field
     eField ::AbstractArray{wpFloat} # The eletric field
     ∇B     ::AbstractArray{wpFloat} # The gradient of the magnetic field
+    ∇b̂     ::AbstractArray{wpFloat} # The gradient of the magnetic field
+    ∇ExB   ::AbstractArray{wpFloat} # The gradient of the magnetic field
     xCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points
     yCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points
     zCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points
@@ -38,6 +41,8 @@ struct Mesh
     function Mesh(bField ::Array{wpFloat, 4},
                   eField ::Array{wpFloat, 4},
                   ∇B     ::Array{wpFloat, 3},
+                  ∇b̂     ::Array{wpFloat, 5},
+                  ∇ExB   ::Array{wpFloat, 5},
                   xCoords::Vector{wpFloat},
                   yCoords::Vector{wpFloat},
                   zCoords::Vector{wpFloat}
@@ -46,7 +51,7 @@ struct Mesh
                   yCoords[1] yCoords[end]
                   zCoords[1] zCoords[end]]
         numdims = 3
-        return new(bField, eField, ∇B, 
+        return new(bField, eField, ∇B, ∇b̂, ∇ExB,
                    xCoords, yCoords, zCoords, 
                    domain, numdims)
     end # constructor
@@ -61,11 +66,11 @@ struct Mesh
                   yCoords[1] yCoords[length(yCoords)]
                   zCoords[1] zCoords[length(zCoords)]]
         numdims = 3
-        ∇B = compute∇B(bField, 
-                       xCoords,
-                       yCoords,
-                       zCoords)
-        return new(bField, eField, ∇B, 
+        ∇B, ∇b̂, ∇ExB = compute∇s(bField, eField,
+                                 xCoords,
+                                 yCoords,
+                                 zCoords)
+        return new(bField, eField, ∇B, ∇b̂, ∇ExB,
                    xCoords, yCoords, zCoords, 
                    domain, numdims)
     end # constructor
@@ -79,12 +84,16 @@ struct Mesh
         domain = [xCoords[1] xCoords[end]
                   yCoords[1] yCoords[end]
                   zCoords[1] zCoords[end]]
-        ∇B = compute∇B(bField, 
-                       xCoords,
-                       yCoords,
-                       zCoords)
+#        ∇B = compute∇B(bField, 
+#                       xCoords,
+#                       yCoords,
+#                       zCoords)
+        ∇B, ∇b̂, ∇ExB = compute∇s(bField, eField,
+                                 xCoords,
+                                 yCoords,
+                                 zCoords)
         numdims = 3
-        return new(bField, eField, ∇B, 
+        return new(bField, eField, ∇B, ∇b̂, ∇ExB,
                    xCoords, yCoords, zCoords, 
                    domain, numdims)
     end # constructor
@@ -96,8 +105,13 @@ struct Mesh
         yCoords = collect(LinRange(0,1, size(bField)[3]))
         dx = xCoords[2] - xCoords[1]
         dy = yCoords[2] - yCoords[1]
-        ∇B = ∇(bField, dx, dy, derivate4thOrder) # Won't work. need norm3
+        #∇B = ∇(bField, dx, dy, derivate4thOrder) # Won't work. need norm3
+        ∇B, ∇b̂, ∇ExB = compute∇s(bField, eField, # Won't work. Need norm3 etc.
+                                 xCoords,
+                                 yCoords,
+                                 zCoords)
         numdims = 2
+        # Won't work. missing ∇b̂ and ∇ExB
         return new(bField, eField, ∇B, xCoords, yCoords, numdims)
     end # constructor 
 
@@ -108,9 +122,10 @@ struct Mesh
         dx = xCoords[2] - xCoords[1]
         ∇B = derivateCentral(bField, dx, (1,0,0)) # Won't work. need norm2
         numdims = 1
+        # Won't work. missing ∇b̂ and ∇ExB
         return new(bField, eField, ∇B, xCoords, numdims)
     end # constructor 
-end # Struct
+end # Struc
 
 #-------------------#
 # Utility functions #
@@ -127,6 +142,36 @@ function compute∇B(bField ::Array{wpFloat, 4},
     return ∇B
 end # function compute∇B
 
+
+function compute∇s(bField ::Array{wpFloat, 4},
+                   eField ::Array{wpFloat, 4},
+                   xCoords::Vector{wpFloat},
+                   yCoords::Vector{wpFloat},
+                   zCoords::Vector{wpFloat}
+                   )
+    _, nx, ny, nz = size(bField)
+    dx = xCoords[2] - xCoords[1]
+    dy = yCoords[2] - yCoords[1]
+    dz = zCoords[2] - zCoords[1]
+    BB = norm4(bField)
+    b̂ = zeros(size(bField))
+    ExBdrift = zeros(size(bField))
+    for i = 1:nx
+        for j= 1:ny
+            for k = 1:nz
+                B⃗ = bField[:,i,j,k]
+                E⃗ = eField[:,i,j,k]
+                B = BB[i,j,k]
+                b̂[:,i,j,k]  .= B⃗ ./ B
+                ExBdrift[:,i,j,k] .= (E⃗ × B⃗) ./ B^2
+            end
+        end
+    end
+    ∇B = ∇(BB,  dx, dy, dz, derivate4thOrder) 
+    ∇b̂ = ∇(b̂,  dx, dy, dz, derivate4thOrder)
+    ∇ExBdrift= ∇(ExBdrift, dx, dy, dz, derivate4thOrder)
+    return ∇B, ∇b̂, ∇ExBdrift
+end # function compute∇s
 #------------------#
 # Mesh set-methods #
 #-------------------------------------------------------------------------------

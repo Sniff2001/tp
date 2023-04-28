@@ -42,7 +42,6 @@ verbose = 4
         @testset verbose = true "Dipole" begin
             include("experiments/dipoleloop.jl")
         end # testset dipole
-<<<<<<< HEAD
         @testset verbose = true "Speiser (1965)" begin
             include("experiments/speiser1965.jl")
         end # testset Speiser 1965

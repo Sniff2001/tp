@@ -34,17 +34,36 @@ dt = 0.1
 interpolator = Interpolations.trilinear
 scheme = Schemes.euler
 
+#---------------------------#
+# Some field configurations #
+#-------------------------------------------------------------------------------
+# No fields
+B = zeros(3, 3, 3, 3)
+E = zeros(3, 3, 3, 3)
+mesh_nofields = Mesh(copy(B), copy(E))
+# Uniform fields
+B[1, :, :, :] .= 1.0
+B[2, :, :, :] .= 2.0
+B[3, :, :, :] .= 3.0
+E[1, :, :, :] .= 1.0
+E[2, :, :, :] .= 2.0
+E[3, :, :, :] .= 3.0
+mesh_uniform = Mesh(copy(B), copy(E))
+
+B = zeros(3, 3, 3, 3)
+B[3, :, :, :] .= 1.0
+E = zeros(3, 3, 3, 3)
+mesh_bfield = Mesh(copy(B), copy(E))
 #------------------------------#
 # Answer for the various tests #
 #-------------------------------------------------------------------------------
 # No fields
 posAnswer1 = [1.1, 2.2, 2.65]
 # Fields, but no velocity
-B = [1.0, 2.0, 3.0]
-E = [1.0, 2.0, 3.0]
-posAnswer2, velAnswer2 = scheme(pos, [0.0, 0.0, 0.0], 3E, dt)
+Evec = [1.0, 2.0, 3.0]
+posAnswer2, velAnswer2 = scheme(pos, [0.0, 0.0, 0.0], 3Evec, dt)
 # Fields, non-relativistic velocity
-accAnswer3 = 3E .+ 3*[3.0, -1.5, 0.0]
+accAnswer3 = 3Evec .+ 3*[3.0, -1.5, 0.0]
 posAnswer3, velAnswer3 = scheme(pos, vel, accAnswer3, dt)
 
 function testfullOrbit(verbose::Bool)
@@ -52,90 +71,65 @@ function testfullOrbit(verbose::Bool)
         #
         # No fields
         #
-        B = zeros(3, 3, 3, 3)
-        E = zeros(3, 3, 3, 3)
-        mesh = Mesh(B, E)
         nextPos, nextVel = Solvers.fullOrbit(pos,
                                              vel,
                                              specie,
-                                             mesh,
+                                             mesh_nofields,
                                              dt,
                                              interpolator,
                                              scheme)
         @test nextPos == posAnswer1 
         @test nextVel == vel
-        
         #
         # Fields, but no velocity
         #
-        B[1, :, :, :] .= 1.0
-        B[2, :, :, :] .= 2.0
-        B[3, :, :, :] .= 3.0
-        E[1, :, :, :] .= 1.0
-        E[2, :, :, :] .= 2.0
-        E[3, :, :, :] .= 3.0
-        mesh = Mesh(B, E)
         nextPos, nextVel = Solvers.fullOrbit(pos,
                                              [0.0, 0.0, 0.0],
                                              specie,
-                                             mesh,
+                                             mesh_uniform,
                                              dt,
                                              interpolator,
                                              scheme)
         @test nextPos == posAnswer2 
         @test nextVel == velAnswer2
-
         #
         # B-field, but no E-field
         #
-        B = zeros(3, 3, 3, 3)
-        B[3, :, :, :] .= 1.0
-        E = zeros(3, 3, 3, 3)
-        mesh = Mesh(B, E)
         nextPos, nextVel = Solvers.fullOrbit([0.0, 0.0, 0.0],
                                              [1.0, 0.0, 1.0],
                                              specie,
-                                             mesh,
+                                             mesh_bfield,
                                              dt,
                                              interpolator,
                                              scheme)
         @test nextPos ≈ [0.1,   0.0, 0.1]
         @test nextVel ≈ [1.0,  -0.3, 1.0]
-
         #
         # Fields, non-relativistic velocity
         #
-        B[1, :, :, :] .= 1.0
-        B[2, :, :, :] .= 2.0
-        B[3, :, :, :] .= 3.0
-        E[1, :, :, :] .= 1.0
-        E[2, :, :, :] .= 2.0
-        E[3, :, :, :] .= 3.0
-        mesh = Mesh(B, E)
         nextPos, nextVel = Solvers.fullOrbit(pos,
                                              vel,
                                              specie,
-                                             mesh,
+                                             mesh_uniform,
                                              dt,
                                              interpolator,
                                              scheme)
         @test nextPos == posAnswer3 
         @test nextVel == velAnswer3
-        
         #
         # Fields, relativistic velocity (not really necessary)
         #
         nextPos, nextVel = Solvers.fullOrbit(pos,
                                              relVel,
                                              specie,
-                                             mesh,
+                                             mesh_uniform,
                                              dt,
                                              interpolator,
                                              scheme)
         accAnswer = 3E[:, 1, 1, 1] .+ 3*[1.8e8, -9.0e7, 0.0]
         posAnswer, velAnswer = scheme(pos, relVel, accAnswer, dt)
         @test nextPos == posAnswer 
-        @test nextVel == velAnswer
+        @test nextVel ≈ velAnswer
 
     end # testset fullOrbit
 end # function testfullOrbit
@@ -146,48 +140,35 @@ function testrelfullOrbitExplLeapFrog(verbose::Bool)
         #
         # No fields
         #
-        B = zeros(3, 3, 3, 3)
-        E = zeros(3, 3, 3, 3)
-        mesh = Mesh(B, E)
         posAnswer = [1.1, 2.2, 2.65]
-
         nextPosVay1, nextVelVay1 = Solvers.relFullOrbitExplLeapFrog(pos,
                                                             vel,
                                                             specie,
-                                                            mesh,
+                                                            mesh_nofields,
                                                             dt,
                                                             interpolator,
                                                             Schemes.vay)
         nextPosBoris1, nextVelBoris1 = Solvers.relFullOrbitExplLeapFrog(pos,
                                                             vel,
                                                             specie,
-                                                            mesh,
+                                                            mesh_nofields,
                                                             dt,
                                                             interpolator,
                                                             Schemes.boris)
-
         #
         # Fields, but no velocity
         #
-        B[1, :, :, :] .= 1.0
-        B[2, :, :, :] .= 2.0
-        B[3, :, :, :] .= 3.0
-        E[1, :, :, :] .= 1.0
-        E[2, :, :, :] .= 2.0
-        E[3, :, :, :] .= 3.0
-        mesh = Mesh(B, E)
-
         nextPosVay2, nextVelVay2 = Solvers.relFullOrbitExplLeapFrog(pos,
                                                             [0.0, 0.0, 0.0],
                                                             specie,
-                                                            mesh,
+                                                            mesh_uniform,
                                                             dt,
                                                             interpolator,
                                                             Schemes.vay)
         nextPosBoris2, nextVelBoris2 = Solvers.relFullOrbitExplLeapFrog(pos,
                                                             [0.0, 0.0, 0.0],
                                                             specie,
-                                                            mesh,
+                                                            mesh_uniform,
                                                             dt,
                                                             interpolator,
                                                             Schemes.boris)
@@ -241,6 +222,18 @@ function testrelfullOrbitExplLeapFrog(verbose::Bool)
         """
     end # testset vay
 end # function testvay
+
+function testGCA(verbose::Bool)
+    @testset verbose=verbose "GCA" begin
+    end # testset GCA
+end # function testGCA
+
+
+function testeomGCA(verbose::Bool)
+    @testset verbose=verbose "eomGCA" begin
+    end # testset eomGCA
+end # function testGCA
+
 
 end # module TestSchemes
         

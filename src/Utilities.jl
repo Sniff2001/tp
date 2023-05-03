@@ -159,7 +159,7 @@ end # function uniformdistr
 
 
 function maxwellBoltzmanndistr(
-    v          ::Array{wpFloat},
+    v          ::AbstractArray{wpFloat},
     temperature::wpFloat,
     mass       ::wpFloat
     )

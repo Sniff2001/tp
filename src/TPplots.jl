@@ -23,7 +23,7 @@ using Meshes
 using Patches:          Patch
 using Particles
 using Utilities:        rejectionsampling, norm4, norm2
-using Interpolations
+using Interpolations_tp
 using Schemes
 using Solvers
 

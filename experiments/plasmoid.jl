@@ -23,7 +23,7 @@ using Patches:          Patch, run!
 using Particles:        ParticleSoA, GCAParticleSoA, kineticenergy, specieTable
 using Solvers          
 using Schemes
-using Interpolations
+using Interpolations_tp
 using Utilities
 
 """
@@ -102,7 +102,7 @@ Ez = 50.0
 # SOLVER CONDITIONS
 solver = Solvers.GCA # Physics solver
 scheme = Schemes.rk4       # Scheme for integrating the diff eqs.
-interp = Interpolations.trilinearGCA # Interpolation scheme
+interp = Interpolations_tp.trilinearGCA # Interpolation scheme
 pbc    = (true, true, true) # (x,y,z) Are mesh boundary conditions periodic?
 #-------------------------------------------------------------------------------
 seatpointsy = [0.1,0.17,0.23,0.28,0.32,0.34,0.35,0.36,0.37,0.375,0.38,0.39]

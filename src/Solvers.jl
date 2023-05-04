@@ -11,14 +11,14 @@
 module Solvers
 
 # Standard libraries
-using LinearAlgebra:    ×, ⋅, norm
+using LinearAlgebra:     ×, ⋅, norm
 # Internal modules
-using WorkingPrecision: wpInt, wpFloat
-using Constants:        c
-using Meshes:           Mesh          
-using Particles:        specieTable
-using Interpolations:   gridinterp
-using Schemes:          positionHalfStep
+using WorkingPrecision:  wpInt, wpFloat
+using Constants:         c
+using Meshes:            Mesh          
+using Particles:         specieTable
+using Interpolations_tp: gridinterp
+using Schemes:           positionHalfStep
 
 """
     fullOrbit(pos, vel, specie, bField, eField, dt, scheme)

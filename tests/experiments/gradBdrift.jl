@@ -26,7 +26,7 @@ using Patches:          Patch, run!
 using Particles:        ParticleSoA, GCAParticleSoA, kineticenergy, specieTable
 using Solvers          
 using Schemes
-using Interpolations
+using Interpolations_tp
 using Utilities
 
 #-------------------------------------------------------------------------------
@@ -86,8 +86,8 @@ Ey = 0.0
 # SOLVER CONDITIONS
 FOscheme = Schemes.rk4  # Scheme for integrating the full-orbit eqs.
 GCAscheme = Schemes.euler # Scheme for integrating the GCA eqs.
-FOinterp = Interpolations.trilinear # Interpolation scheme for full orbit
-GCAinterp = Interpolations.trilinearGCA # Interpolation scheme for GCA
+FOinterp = Interpolations_tp.trilinear # Interpolation scheme for full orbit
+GCAinterp = Interpolations_tp.trilinearGCA # Interpolation scheme for GCA
 pbc    = (true, true, true) # (x,y,z) Are mesh boundary conditions periodic?
 
 

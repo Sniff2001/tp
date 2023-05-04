@@ -3,13 +3,13 @@
 # Author: e.s.oyre@astro.uio.no
 #-------------------------------------------------------------------------------
 #
-#             Interpolations.jl
+#             Interpolations_tp.jl
 #
 #-------------------------------------------------------------------------------
 # Module containing interpolation methods.
 #-------------------------------------------------------------------------------
 
-module Interpolations
+module Interpolations_tp
 
 using WorkingPrecision: wpFloat, wpInt
 using Meshes
@@ -240,5 +240,5 @@ function trilinearsum(
     return A
 end # function trilinearsum
 
-end # module Interpolations
+end # module Interpolations_tp
 

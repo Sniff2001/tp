@@ -3,18 +3,18 @@
 # Author: e.s.oyre@astro.uio.no
 #-------------------------------------------------------------------------------
 #
-#             TestInterpolations.jl
+#             TestInterpolations_tp.jl
 #
 #-------------------------------------------------------------------------------
-# Module containing test of the Interpolations-module.
+# Module containing test of the Interpolations_tp-module.
 #-------------------------------------------------------------------------------
 
-module TestInterpolations
+module TestInterpolations_tp
 
 using Test
 
 using WorkingPrecision: wpInt, wpFloat
-using Interpolations
+using Interpolations_tp
 using Meshes
 
 export testtrilinear
@@ -143,5 +143,5 @@ function testlocateCell(verbose)
         @test locateCell(coords, 1.00 ) == answer5
     end # testset
 end # function testLocateCell
-end # module TestInterpolations
+end # module TestInterpolations_tp
 

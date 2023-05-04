@@ -29,7 +29,7 @@ using Patches:          Patch, run!
 using Particles:        ParticleSoA, GCAParticleSoA, kineticenergy, specieTable
 using Solvers          
 using Schemes
-using Interpolations
+using Interpolations_tp
 using Utilities
 
 
@@ -93,7 +93,7 @@ Ez = -a
 #...............................................
 # SOLVER CONDITIONS
 FOscheme = Schemes.rk4  # Scheme for integrating the full-orbit eqs.
-FOinterp = Interpolations.trilinear # Interpolation scheme for full orbit
+FOinterp = Interpolations_tp.trilinear # Interpolation scheme for full orbit
 pbc    = (true, true, true) # (x,y,z) Are mesh boundary conditions periodic?
 
 

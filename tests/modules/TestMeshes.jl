@@ -19,6 +19,6 @@ using Meshes
 """
 There are currently no Meshes-specific unit-tests.
 
-See `testtrilinear` in TestInterpolations.jl and testExBdrift.jl for indirect 
+See `testtrilinear` in TestInterpolations_tp.jl and ExBdrift.jl for indirect 
 tests.
 """

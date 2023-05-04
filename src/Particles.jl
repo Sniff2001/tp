@@ -17,7 +17,7 @@ using WorkingPrecision: wpFloat, wpInt
 using Constants:        m_e, m_p, e
 using Utilities:        norm3
 using Meshes
-using Interpolations
+using Interpolations_tp
 
 
 #-------------#   

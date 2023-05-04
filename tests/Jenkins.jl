@@ -7,7 +7,7 @@
 #-------------------------------------------------------------------------------
 
 using Test
-using TestInterpolations
+using TestInterpolations_tp
 using TestSchemes
 using TestSolvers
 
@@ -15,7 +15,7 @@ verbose = 4
 
 @testset verbose = verbose ≥ 1 "All tests" begin
     @testset verbose = verbose ≥ 2 "Unit tests" begin
-        @testset verbose = verbose ≥ 3 "Interpolations" begin
+        @testset verbose = verbose ≥ 3 "Interpolations_tp" begin
             testtrilinear(verbose ≥ 4)
             testlocateCell(verbose ≥ 4)
         end

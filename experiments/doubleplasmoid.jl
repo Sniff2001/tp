@@ -19,7 +19,7 @@ using Patches:          Patch, run!
 using Particles:        ParticleSoA, kineticenergy, specieTable
 using Solvers          
 using Schemes
-using Interpolations
+using Interpolations_tp
 using Utilities
 
 """
@@ -83,7 +83,7 @@ Ez = 0.0
 # SOLVER CONDITIONS
 solver = Solvers.fullOrbit # Physics solver
 scheme = Schemes.rk4       # Scheme for integrating the diff eqs.
-interp = Interpolations.trilinear # Interpolation scheme
+interp = Interpolations_tp.trilinear # Interpolation scheme
 pbc    = (true, true, true) # (x,y,z) Are mesh boundary conditions periodic?
 #-------------------------------------------------------------------------------
 

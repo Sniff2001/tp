@@ -22,7 +22,7 @@ using Patches
 using Particles
 using Solvers
 using Schemes
-using Interpolations
+using Interpolations_tp
 using WorkingPrecision: wpFloat, wpInt
 
 """
@@ -189,7 +189,7 @@ patchEC = Patch(mesh,
                 particlesEC,
                 Solvers.fullOrbit,
                 Schemes.eulerCromer,
-                Interpolations.trilinear,
+                Interpolations_tp.trilinear,
                 dt,
                 numSteps,
                 numParticles
@@ -199,7 +199,7 @@ patchVay = Patch(mesh,
                  particlesVay,
                  Solvers.relFullOrbitExplLeapFrog,
                  Schemes.vay,
-                 Interpolations.trilinear,
+                 Interpolations_tp.trilinear,
                  dt,
                  numSteps,
                  numParticles)
@@ -208,7 +208,7 @@ patchVay = Patch(mesh,
 #              particles,
 #              Solvers.relFullOrbitExplLeapFrog,
 #              Schemes.boris,
-#              Interpolations.trilinear,
+#              Interpolations_tp.trilinear,
 #              dt,
 #              numSteps,
 #              numParticles)
@@ -218,7 +218,7 @@ patchGCA = Patch(mesh,
                  particlesGCA,
                  Solvers.GCA,
                  Schemes.rk4,
-                 Interpolations.trilinearGCA,
+                 Interpolations_tp.trilinearGCA,
                  dt,
                  numSteps,
                  numParticles)

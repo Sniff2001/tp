@@ -517,6 +517,22 @@ function initparticlesmaxwellian(
     return positions, velocities
 end # function initparticlesmaxwellian
 
+function inituniform(
+    numparticles::Integer,
+    xbounds::Vector{wpFloat},
+    ybounds::Vector{wpFloat},
+    zbounds::Vector{wpFloat},
+    seed   ::Integer=0
+    )
+    lowerbounds = [xbounds[1], ybounds[1], zbounds[1]]
+    upperbounds = [xbounds[end], ybounds[end], zbounds[end]]
+    spatialextent = upperbounds .- lowerbounds
+    numdims = 3
+    r = rand(MersenneTwister(seed),
+             wpFloat, (Int64(numdims), Int64(numparticles))) # 2 for both position and
+    positions  = lowerbounds .+ (spatialextent .* r[1:numdims, :])
+    return positions
+end
 
 function initparticlesmaxwellianx(
     numparticles::wpInt,

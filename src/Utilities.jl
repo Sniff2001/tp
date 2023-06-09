@@ -20,6 +20,8 @@ using WorkingPrecision: wpFloat, wpInt
 using Constants:        k_B
 
 export randn
+export initparticlesuniform
+export initparticlesmaxwellian
 
 
 #----------------#
@@ -36,12 +38,12 @@ function norm2(field::Matrix{wpFloat},
                )
     dims = size(field)
     if axis == 1
-        fieldstrength = zeros(dims[2])
+        fieldstrength = zeros(wpFloat, dims[2])
         for i = 1:dims[2]
             fieldstrength[i] = norm(field[:, i])
         end # loop i
     elseif axis == 2
-        fieldstrength = zeros(dims[1])
+        fieldstrength = zeros(wpFloat, dims[1])
         for i = 1:dims[1]
             fieldstrength[i] = norm(field[i, :])
         end
@@ -60,7 +62,7 @@ dimension of the field array.
 """
 function norm3(field::Array{wpFloat, 3})
     dims = size(field)
-    fieldstrength = zeros(dims[2:3])
+    fieldstrength = zeros(wpFloat, dims[2:3])
     for i = 1:dims[2]
         for j = 1:dims[3]
             fieldstrength[i,j] = norm(field[:, i, j])
@@ -77,11 +79,11 @@ strength. The argument 'axis' determines whether the vector components are
 stored in the first or fourth dimension of the array storing the field.
 """
 function norm4(field::Array{wpFloat, 4},
-               axis ::wpInt=1
+               axis ::wpInt=wpInt(1)
                )
     if axis == 1
         dims = size(field[1,:,:,:])
-        fieldstrength = zeros(dims)
+        fieldstrength = zeros(wpFloat, dims)
         for i = 1:dims[1]
             for j = 1:dims[2]
                 for k = 1:dims[3]
@@ -93,7 +95,7 @@ function norm4(field::Array{wpFloat, 4},
         end # loop i
     elseif axis == 4
         dims = size(field[:,:,:,1])
-        fieldstrength = zeros(dims)
+        fieldstrength = zeros(wpFloat, dims)
         for i = 1:dims[1]
             for j = 1:dims[2]
                 for k = 1:dims[3]
@@ -152,7 +154,7 @@ function uniformdistr(
     )
     mask = a .<= x .<= b
     stepheight = 1.0/(b - a)
-    prob = zeros(size(x))
+    prob = zeros(wpFloat, size(x))
     prob[mask] .= stepheight
     return prob
 end # function uniformdistr
@@ -216,7 +218,7 @@ function Base.rand(
     domain::Matrix{wpFloat}
     )
     numaxes = size(domain)[1]
-    r = zeros(numaxes)
+    r = zeros(wpFloat, numaxes)
     for i = 1:numaxes
         a = domain[i,1]
         b = domain[i,2]
@@ -254,7 +256,7 @@ function rejectionsampling(
     domain    ::Matrix{wpFloat}
     )
     numdims = size(domain)[1]
-    positions = zeros((numdims, numsamples))
+    positions = zeros(wpFloat, (numdims, numsamples))
     accepted = 0
     rejected = 0
     while accepted < numsamples
@@ -391,7 +393,7 @@ function normal3Donlyz(
                                         )
     # Initialise the vector field
     ndims = 3
-    A = zeros(ndims, nx, ny, nz)
+    A = zeros(wpFloat, ndims, nx, ny, nz)
     # Evaluate the z-component of the vecor field to be normally distributed in
     # the x and y dimensions.
     gaussx = normaldistr(xx, μx, σx)
@@ -420,7 +422,7 @@ function fadeevEquilibrium(
                                         )
     # Initialise the vector field
     ndims = 3
-    A = zeros(ndims, nx, ny, nz)
+    A = zeros(wpFloat, ndims, nx, ny, nz)
     for i = 1:nx
         for j = 1:ny
             A[3,i,j,:] .= B0 * λ * log2( ϵ * cos(xx[i]/λ) + cosh(yy[j]/λ) )
@@ -438,19 +440,18 @@ function initparticlesuniform(
     posf        ::Vector{wpFloat}, 
     vel0        ::Vector{wpFloat}, 
     velf        ::Vector{wpFloat}, 
-    seed        ::wpInt=0  # random-seed
+    seed        ::wpInt=wpInt(0)  # random-seed
     )
     numdims = 3
     spatialextent = posf .- pos0
     velocityrange = velf .- vel0
-    r = rand(MersenneTwister(0),
-             wpFloat, (2numdims, numparticles)) # 2 for both position and
+    r = rand(MersenneTwister(seed),
+             wpFloat, (Int64(2numdims), Int64(numparticles))) # 2 for both position and
     # velocity 
     positions  = pos0 .+ (spatialextent .* r[1:numdims, :])
     velocities = vel0 .+ (velocityrange .* r[4:2numdims, :])
     return positions, velocities
 end # function initparticlesuniform
-
 
 function initparticlesmaxwellian(
     numparticles::wpInt,
@@ -497,7 +498,7 @@ function initparticlesmaxwellianx(
     # Generate velocities from a normal distribution
     velocitiesx = μ .+ σ .* randn(MersenneTwister(seed),
                                   wpFloat, (numparticles))
-    velocities = zeros(numdims, numparticles)
+    velocities = zeros(wpFloat, numdims, numparticles)
     velocities[1, :] = velocitiesx
     #
     # Posistions: Generate from a uniform distribution

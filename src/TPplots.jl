@@ -47,7 +47,7 @@ function quiverslice!(
     ax  ::plt.PyCall.PyObject,
     mesh::Mesh, 
     normal::String, 
-    point::wpInt,
+    point::Integer,
     field::String="B"
     )
     if field == "B"
@@ -85,7 +85,7 @@ function streamplotslice!(
     ax    ::plt.PyCall.PyObject,
     mesh  ::Mesh, 
     normal::String, 
-    point ::wpInt,
+    point ::Integer,
     field ::String="B")
     if field == "B"
         f = mesh.bField
@@ -206,7 +206,7 @@ function pcolormeshslice!(
     ax    ::plt.PyCall.PyObject,
     mesh  ::Mesh, 
     normal::String, 
-    point ::wpInt,
+    point ::Integer,
     field ::String="B")
     if field == "B"
         f = mesh.bField
@@ -358,7 +358,7 @@ end # function plotenergydistr
 function plotperiodictrajectory(
     ax::plt.PyCall.PyObject,
     pos::Matrix{wpFloat},
-    partidx::wpInt,
+    partidx::Integer,
     domain ::Matrix{wpFloat},
     cm,
     colorrange,
@@ -394,7 +394,7 @@ end
 function plot(
     patch    ::Patch,
     normal   ::String="z",
-    point    ::wpInt=1,
+    point    ::Integer=1,
     labelling::Bool=false
     )
 

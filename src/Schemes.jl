@@ -515,4 +515,25 @@ function curl(
     return result
 end # function curl
 
+
+"""
+    LinearAlgebra.cross(f, g)
+Method for computing the cross product between two 3D vector-fields.
+"""
+function LinearAlgebra.cross(
+    f::Array{wpFloat, 4},
+    g::Array{wpFloat, 4}
+    )
+    _, ni, nj, nk = size(f)
+    crossproduct = zeros(wpFloat, 3, ni, nj, nk)
+    for i = 1:ni
+        for j = 1:nj
+            for k = 1:nk
+                crossproduct[:,i,j,k] = f[:,i,j,k] × g[:,i,j,k]
+            end
+        end
+    end
+    return crossproduct
+end # function cross
+
 end # module schemes

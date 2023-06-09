@@ -34,6 +34,9 @@ export plot3D
 export plottraj
 export streamplotslice!
 export pcolormeshslice!
+export pcolormesh_xz!
+export pcolormesh_xy!
+export pcolormesh_yz!
 export trajectoryslice!
 export trajectory3D!
 
@@ -119,6 +122,84 @@ function streamplotslice!(
         color="black"
     )
 end # function streamplotslice
+
+
+function pcolormesh_xz!(
+    ax     ::plt.PyCall.PyObject,
+    A      ::Matrix{wpFloat},
+    mesh   ::Mesh,
+    yflip  ::Bool=False,
+    cmlabel::String="",
+    title  ::String=""
+    )
+    pfabs = copy(transpose(A))
+    uuu = mesh.xCoords' .* ones(length(mesh.zCoords))
+    vvv = ones(length(mesh.xCoords))' .* mesh.zCoords
+    pcm = ax.pcolormesh(uuu, vvv, pfabs,
+                        alpha=1.0,
+                        cmap=plt.get_cmap("plasma"))
+    cb = plt.colorbar(pcm,
+                      label=cmlabel,
+                      ax=ax)
+    ax.set_xlabel("x")
+    ax.set_ylabel("z")
+    ax.set_title(title)
+    if yflip
+        ax.invert_yaxis()
+    end
+end # function pcolormesh_xz!
+
+
+function pcolormesh_xy!(
+    ax     ::plt.PyCall.PyObject,
+    A      ::Matrix{wpFloat},
+    mesh   ::Mesh,
+    yflip  ::Bool=False,
+    cmlabel::String="",
+    title  ::String=""
+    )
+    pfabs = copy(transpose(A))
+    uuu = mesh.xCoords' .* ones(length(mesh.yCoords))
+    vvv = ones(length(mesh.xCoords))' .* mesh.yCoords
+    pcm = ax.pcolormesh(uuu, vvv, pfabs,
+                        alpha=1.0,
+                        cmap=plt.get_cmap("plasma"))
+    cb = plt.colorbar(pcm,
+                      label=cmlabel,
+                      ax=ax)
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_title(title)
+    if yflip
+        ax.invert_yaxis()
+    end
+end # function pcolormesh_xy!
+
+
+function pcolormesh_yz!(
+    ax     ::plt.PyCall.PyObject,
+    A      ::Matrix{wpFloat},
+    mesh   ::Mesh,
+    yflip  ::Bool=False,
+    cmlabel::String="",
+    title  ::String=""
+    )
+    pfabs = copy(transpose(A))
+    uuu = mesh.yCoords' .* ones(length(mesh.zCoords))
+    vvv = ones(length(mesh.yCoords))' .* mesh.zCoords
+    pcm = ax.pcolormesh(uuu, vvv, pfabs,
+                        alpha=1.0,
+                        cmap=plt.get_cmap("plasma"))
+    cb = plt.colorbar(pcm,
+                      label=cmlabel,
+                      ax=ax)
+    ax.set_xlabel("y")
+    ax.set_ylabel("z")
+    ax.set_title(title)
+    if yflip
+        ax.invert_yaxis()
+    end
+end # function pcolormesh_yz!
 
 
 function pcolormeshslice!(

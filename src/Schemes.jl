@@ -375,6 +375,60 @@ function ∇(field::Array{wpFloat, 2},
     gradient[2, :, :] = ∂f∂y
     return gradient
 end # function ∇ 
+    
+"""
+Newer versions of the gradient, allowing for non-uniform structured grid.
+"""
+function ∇(field::Array{wpFloat, 4},
+           xx   ::Vector{wpFloat},
+           yy   ::Vector{wpFloat},
+           zz   ::Vector{wpFloat},
+           scheme::Function
+           )
+    #
+    fx = field[1,:,:,:]
+    fy = field[2,:,:,:]
+    fz = field[3,:,:,:]
+    #
+    ∂fx∂x, ∂fx∂y, ∂fx∂z = scheme(fx, xx, yy, zz)
+    ∂fy∂x, ∂fy∂y, ∂fy∂z = scheme(fy, xx, yy, zz)
+    ∂fz∂x, ∂fz∂y, ∂fz∂z = scheme(fz, xx, yy, zz)
+    #
+    _, nx, ny, nz = size(field)
+    jacobian = zeros(wpFloat, 3, 3, nx, ny, nz)
+    #
+    jacobian[1, 1, :,:,:] = ∂fx∂x
+    jacobian[1, 2, :,:,:] = ∂fx∂y
+    jacobian[1, 3, :,:,:] = ∂fx∂z
+    #
+    jacobian[2, 1, :,:,:] = ∂fy∂x
+    jacobian[2, 2, :,:,:] = ∂fy∂y
+    jacobian[2, 3, :,:,:] = ∂fy∂z
+    #
+    jacobian[3, 1, :,:,:] = ∂fz∂x
+    jacobian[3, 2, :,:,:] = ∂fz∂y
+    jacobian[3, 3, :,:,:] = ∂fz∂z
+    #
+    return jacobian
+end # function ∇
+#|
+function ∇(field::Array{wpFloat, 3},
+           xx   ::Vector{wpFloat},
+           yy   ::Vector{wpFloat},
+           zz   ::Vector{wpFloat},
+           scheme::Function
+           )
+        
+    ∂f∂x, ∂f∂y, ∂f∂z = scheme(field, xx, yy, zz)
+
+    nx, ny, nz = size(field)
+    gradient = zeros(wpFloat, 3, nx, ny, nz)
+    gradient[1, :, :, :] = ∂f∂x
+    gradient[2, :, :, :] = ∂f∂y
+    gradient[3, :, :, :] = ∂f∂z
+    return gradient
+
+end # function ∇
 
 
 """

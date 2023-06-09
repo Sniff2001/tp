@@ -25,11 +25,11 @@ export amplifyEfield! # Amplifies the elctric field of the mesh by a factor
 # Structs     #
 #-------------#-----------------------------------------------------------------
 struct Mesh
-    bField ::AbstractArray{wpFloat} # The magnetic field
-    eField ::AbstractArray{wpFloat} # The eletric field
-    ∇B     ::AbstractArray{wpFloat} # The gradient of the magnetic field
-    ∇b̂     ::AbstractArray{wpFloat} # The gradient of the magnetic field
-    ∇ExB   ::AbstractArray{wpFloat} # The gradient of the magnetic field
+    bField ::Array{wpFloat,4} # The magnetic field
+    eField ::Array{wpFloat,4} # The eletric field
+    ∇B     ::Array{wpFloat,4} # The gradient of the magnetic field
+    ∇b̂     ::Array{wpFloat,5} # The gradient of the magnetic field
+    ∇ExB   ::Array{wpFloat,5} # The gradient of the magnetic field
     xCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points
     yCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points
     zCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points

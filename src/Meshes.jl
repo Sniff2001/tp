@@ -40,7 +40,7 @@ struct Mesh
     #--------------------------------------------------------------------------
     function Mesh(bField ::Array{wpFloat, 4},
                   eField ::Array{wpFloat, 4},
-                  ∇B     ::Array{wpFloat, 3},
+                  ∇B     ::Array{wpFloat, 4},
                   ∇b̂     ::Array{wpFloat, 5},
                   ∇ExB   ::Array{wpFloat, 5},
                   xCoords::Vector{wpFloat},

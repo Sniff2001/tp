@@ -154,8 +154,8 @@ function compute∇s(bField ::Array{wpFloat, 4},
     dy = yCoords[2] - yCoords[1]
     dz = zCoords[2] - zCoords[1]
     BB = norm4(bField)
-    b̂ = zeros(size(bField))
-    ExBdrift = zeros(size(bField))
+    b̂ = zeros(wpFloat, 3, nx, ny, nz)
+    ExBdrift = zeros(wpFloat, 3, nx, ny, nz)
     for i = 1:nx
         for j= 1:ny
             for k = 1:nz

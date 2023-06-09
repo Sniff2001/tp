@@ -41,9 +41,9 @@ export computeμ
 #              mass charge
 specieTable = [m_e   -e     # Electron
                m_p    e     # Proton
-               1.0  3.0     # Unit mass and charge = 3
-               1.0  1.0     # Unit mass and charge
-               1.0 -1.0     # Unit mass and negative unit charge
+               wpFloat(1.0)  wpFloat( 3.0)     # Unit mass and charge = 3
+               wpFloat(1.0)  wpFloat( 1.0)    # Unit mass and charge
+               wpFloat(1.0)  wpFloat(-1.0)    # Unit mass and negative unit charge
                ]
 
 #-------------#   

@@ -17,6 +17,7 @@ using Meshes
 export gridinterp
 export locateCell
 export trilinear
+export bilinear_xz
 
 
 #-----------------------#
@@ -101,7 +102,7 @@ function trilinear( # Arbitrary vector-field
     xx          ::Vector{wpFloat},
     yy          ::Vector{wpFloat},
     zz          ::Vector{wpFloat},
-    (i,j,k)::Tuple{wpInt, wpInt, wpInt},
+    (i,j,k)::Tuple{Integer, Integer, Integer},
     (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
     )
     coefficients = trilinearcoefficients(xx,
@@ -117,12 +118,12 @@ end # function trilinear
 #|
 function trilinear( # Method for passing the mesh-struct
     mesh   ::Mesh,
-    (i,j,k)::Tuple{wpInt, wpInt, wpInt},
+    (i,j,k)::Tuple{Integer, Integer, Integer},
     (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
     )
     coefficients = trilinearcoefficients(mesh.xCoords,
                                          mesh.yCoords,
-                                         mesh.xCoords,
+                                         mesh.zCoords,
                                          (i,j,k),
                                          (x,y,z))
     B = trilinearsum(mesh.bField,
@@ -134,9 +135,47 @@ function trilinear( # Method for passing the mesh-struct
     return B, E
 end # function trilinear
 
+
+function bilinear_xz( # Arbitrary vector-field
+    tensorfield ::AbstractArray{wpFloat},
+    xx          ::Vector{wpFloat},
+    yy          ::Vector{wpFloat},
+    zz          ::Vector{wpFloat},
+    (i,j,k)::Tuple{Integer, Integer, Integer},
+    (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
+    )
+    coefficients = bilinearcoefficients(xx,
+                                        zz,
+                                        (i,j),
+                                        (x,z))
+    f = bilinearsum(dropdims(tensorfield, dims=ndims(tensorfield)-1),
+                    (i,j),
+                    coefficients)
+    return f
+end # function trilinear
+#|
+function bilinear_xz( 
+    mesh   ::Mesh,
+    (i,j,k)::Tuple{Integer, Integer, Integer},
+    (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
+    )
+    coefficients = bilinearcoefficients(mesh.xCoords,
+                                        mesh.zCoords,
+                                        (i,j),
+                                        (x,z))
+    B = bilinearsum(dropdims(mesh.bField, dims=3),
+                    (i,j),
+                    coefficients)
+    E = bilinearsum(dropdims(mesh.eField, dims=3),
+                    (i,j),
+                    coefficients)
+    return B, E
+end # function trilinear
+
+
 function trilinearGCA(
     mesh   ::Mesh,
-    (i,j,k)::Tuple{wpInt, wpInt, wpInt},
+    (i,j,k)::Tuple{Integer, Integer, Integer},
     (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
     )
     coefficients = trilinearcoefficients(mesh.xCoords,
@@ -163,11 +202,12 @@ function trilinearGCA(
     return B, E, ∇B, ∇b̂, ∇ExB
 end # function trilinearGCA
 
+
 function trilinearcoefficients(
     xCoords::Vector{wpFloat},
     yCoords::Vector{wpFloat},
     zCoords::Vector{wpFloat},
-    (i,j,k)::Tuple{wpInt, wpInt, wpInt},
+    (i,j,k)::Tuple{Integer, Integer, Integer},
     (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
     )
     t = (x - xCoords[i])/(xCoords[i + 1] - xCoords[i])
@@ -186,9 +226,27 @@ function trilinearcoefficients(
     return c0, c1, c2, c3, c4, c5, c6, c7
 end # function trinlinearcoefficients
 
+
+function bilinearcoefficients(
+    xCoords::Vector{wpFloat},
+    yCoords::Vector{wpFloat},
+    (i,j)::Tuple{Integer, Integer},
+    (x,y)::Tuple{wpFloat, wpFloat}
+    )
+    t = (x - xCoords[i])/(xCoords[i + 1] - xCoords[i])
+    u = (y - yCoords[j])/(yCoords[j + 1] - yCoords[j])
+    #
+    c0 = (1 - t)*(1 - u)
+    c1 = t*(1 - u)
+    c2 = t*u
+    c3 = (1 - t)*u
+    #
+    return c0, c1, c2, c3
+end # bilinearcoefficients
+
 function trilinearsum(
     tensorfield::Array{wpFloat, 5},
-    (i,j,k)    ::Tuple{wpInt, wpInt, wpInt},
+    (i,j,k)    ::Tuple{Integer, Integer, Integer},
     c          ::NTuple{8, wpFloat}
     )
     c0, c1, c2, c3, c4, c5, c6, c7 = c
@@ -206,7 +264,7 @@ end # function trilinearsum
 #|
 function trilinearsum(
     vectorfield::Array{wpFloat, 4},
-    (i,j,k)    ::Tuple{wpInt, wpInt, wpInt},
+    (i,j,k)    ::Tuple{Integer, Integer, Integer},
     c          ::NTuple{8, wpFloat}
     )
     c0, c1, c2, c3, c4, c5, c6, c7 = c
@@ -224,7 +282,7 @@ end # function trilinearsum
 #|
 function trilinearsum(
     scalarfield::Array{wpFloat, 3},
-    (i,j,k)    ::Tuple{wpInt, wpInt, wpInt},
+    (i,j,k)    ::Tuple{Integer, Integer, Integer},
     c          ::NTuple{8, wpFloat}
     )
     c0, c1, c2, c3, c4, c5, c6, c7 = c
@@ -239,6 +297,49 @@ function trilinearsum(
     A  = c0*A0 + c1*A1 + c2*A2 + c3*A3 + c4*A4 + c5*A5 + c6*A6 + c7*A7
     return A
 end # function trilinearsum
+
+
+function bilinearsum(
+    tensorfield::Array{wpFloat, 4},
+    (i,j)      ::Tuple{Integer, Integer},
+    c          ::NTuple{4, wpFloat}
+    )
+    c0, c1, c2, c3 = c
+    A0 = tensorfield[:, :,   i,   j]
+    A1 = tensorfield[:, :, i+1,   j]
+    A2 = tensorfield[:, :, i+1, j+1]
+    A3 = tensorfield[:, :,   i, j+1]
+    A  = c0*A0 + c1*A1 + c2*A2 + c3*A3 
+    return A
+end # bilinearsum
+#|
+function bilinearsum(
+    vectorfield::Array{wpFloat, 3},
+    (i,j)      ::Tuple{Integer, Integer},
+    c          ::NTuple{4, wpFloat}
+    )
+    c0, c1, c2, c3 = c
+    A0 = vectorfield[:,   i,   j]
+    A1 = vectorfield[:, i+1,   j]
+    A2 = vectorfield[:, i+1, j+1]
+    A3 = vectorfield[:,   i, j+1]
+    A  = c0*A0 + c1*A1 + c2*A2 + c3*A3 
+    return A
+end # bilinearsum
+#|
+function bilinearsum(
+    scalarfield::Array{wpFloat, 2},
+    (i,j)      ::Tuple{Integer, Integer},
+    c          ::NTuple{4, wpFloat}
+    )
+    c0, c1, c2, c3 = c
+    A0 = scalarfield[  i,   j]
+    A1 = scalarfield[i+1,   j]
+    A2 = scalarfield[i+1, j+1]
+    A3 = scalarfield[  i, j+1]
+    A  = c0*A0 + c1*A1 + c2*A2 + c3*A3 
+    return A
+end # bilinearsum
 
 end # module Interpolations_tp
 

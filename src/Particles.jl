@@ -84,6 +84,17 @@ mutable struct ParticleSoA <: TraceParticle
     end # constructor 
     #|
     function ParticleSoA(
+        pos    ::Array{wpFloat, 3},
+        vel    ::Array{wpFloat, 3},
+        species::Vector{wpInt},   # Particle specie ID (e.g. electron, proton)
+        )
+        numDims, numParticles = size(pos)
+        alive = ones(Bool, numParticles)
+        weight = ones(wpFloat, numParticles)
+        return new(pos, vel, species, alive, weight)
+    end # constructor 
+    #|
+    function ParticleSoA(
         pos0     ::Matrix{wpFloat},
         vel0     ::Matrix{wpFloat},
         species ::Vector{wpInt},

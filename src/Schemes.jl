@@ -13,10 +13,12 @@
 module Schemes
 
 # Standard libraries
-using LinearAlgebra:    norm, ×, ⋅
+using LinearAlgebra
 # Internal libraries
 using WorkingPrecision: wpFloat, wpInt
 using Constants:        c, cSqrdInv
+
+export cross
 
 #---------------------------------------#
 # Integration of differential equations #
@@ -209,6 +211,58 @@ end # function boris
 #-----------------#
 # Differentiation #
 #-----------------#-------------------------------------------------------------
+
+"""
+    dervateUpwind(
+        field::Array{wpFloat, 3},
+        dx   ::Vector{wpFloat},
+        axis ::Tuple{wpInt, wpInt, wpInt}
+    )
+Differentiates a 3D `field` with respect to a specified `axis` using the upwind
+scheme. The grid size may be variable, hence given as the vector `dx`. End point
+of result will be ill-calculated and the derivative will be defined at half grid
+point higher than the input field.
+"""
+function derivateUpwind(
+    field::Array{wpFloat, 3},
+    xx   ::Vector{wpFloat},
+    yy   ::Vector{wpFloat},
+    zz   ::Vector{wpFloat},
+    )
+    ni, nj, nk = size(field)
+
+    if length(xx) > 1
+        df = circshift(field, (-1,0,0)) - field
+        # Pad the Δx array with a copy of the first value at the end. I.e. assume
+        # periodic boundary conditions
+        dx = circshift(xx, -1) - xx
+        ddx = df ./ dx
+    else
+        ddx = zeros(wpFloat, ni,nj,nk)
+    end
+
+    if length(yy) > 1
+        df = circshift(field, (0,-1,0)) - field
+        dy = circshift(yy, -1) - yy
+        ddy = df ./ dy'
+    else
+        ddy = zeros(wpFloat, ni, nj, nk)
+    end
+
+    if length(zz) > 1
+        df = circshift(field, (0,0,-1)) - field
+        dz = circshift(zz, -1) - zz
+        # I don't know of a fast method for the 3rd dimension
+        ddz = zeros(wpFloat, ni, nj, nk)
+        for k = 1:nk
+            ddz[:,:,k] = df[:,:,k] / dz[k]
+        end
+    end
+    
+    return ddx, ddy, ddz
+end #function derivateUpwind
+
+
 """
     derivateCentral(field, dx)
 First and last grid point are ill calculated.

@@ -432,9 +432,9 @@ end # function ∇
 
 
 """
-    ∇×(field, dx, dy, dz, derivscheme)
+    curl(field, gridsizes, derivscheme)
 The curl operator. Calculates the curl of a 3-dimensional vector
-field. Requires grid spacing on all three axis and the numerical scheme as
+field. Requires uniform grid spacing on all three axis. 
 arguments. The scheme is given as a function type, e.g. Schemes.derivateCentral.
 """
 function curl(field      ::Array{wpFloat, 4},
@@ -462,5 +462,57 @@ function curl(field      ::Array{wpFloat, 4},
     return result
 end # functin curl
 
+"""
+    curl(field, dx, dy, dz, derivscheme)
+The curl operator. Calculates the curl of a 3-dimensional vector
+field. Requires grid spacing on all three axis (may be non-uniform)
+The scheme is given as a function type, e.g. Schemes.derivateCentral.
+"""
+function curl(
+    field      ::Array{wpFloat, 4},
+    dx         ::Vector{wpFloat},
+    dy         ::Vector{wpFloat},
+    dz         ::Vector{wpFloat},
+    derivscheme::Function
+    )
+    fx = field[1,:,:,:]
+    fy = field[2,:,:,:]
+    fz = field[3,:,:,:]
+    derivx = (1,0,0)
+    derivy = (0,1,0)
+    derivz = (0,0,1)
+    ∂fx∂y = derivscheme(fx, dy, derivy)
+    ∂fx∂z = derivscheme(fx, dz, derivz)
+    ∂fy∂x = derivscheme(fy, dx, derivx)
+    ∂fy∂z = derivscheme(fy, dz, derivz)
+    ∂fz∂x = derivscheme(fz, dx, derivx)
+    ∂fz∂y = derivscheme(fz, dy, derivy)
+    _, nx, ny, nz = size(field)
+    result = zeros(wpFloat, 3, nx, ny, nz)
+    result[1, :, :, :] = ∂fz∂y .- ∂fy∂z
+    result[2, :, :, :] = ∂fx∂z .- ∂fz∂x
+    result[3, :, :, :] = ∂fy∂x .- ∂fx∂y
+    return result
+end # function curl
+#|
+function curl(
+    fx         ::Array{wpFloat, 3},
+    fy         ::Array{wpFloat, 3},
+    fz         ::Array{wpFloat, 3},
+    xx         ::Vector{wpFloat},
+    yy         ::Vector{wpFloat},
+    zz         ::Vector{wpFloat},
+    derivscheme::Function
+    )
+    ∂fx∂x, ∂fx∂y, ∂fx∂z = derivscheme(fx, xx, yy, zz)
+    ∂fy∂x, ∂fy∂y, ∂fy∂z = derivscheme(fy, xx, yy, zz)
+    ∂fz∂x, ∂fz∂y, ∂fz∂z = derivscheme(fz, xx, yy, zz)
+    nx, ny, nz = size(fx)
+    result = zeros(wpFloat, 3, nx, ny, nz)
+    result[1, :, :, :] = ∂fz∂y .- ∂fy∂z
+    result[2, :, :, :] = ∂fx∂z .- ∂fz∂x
+    result[3, :, :, :] = ∂fy∂x .- ∂fx∂y
+    return result
+end # function curl
 
 end # module schemes

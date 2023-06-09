@@ -110,6 +110,43 @@ function norm4(field::Array{wpFloat, 4},
     end # if
     return fieldstrength
 end # function norm4
+#|
+function norm4(
+    fx::Array{wpFloat, 3},
+    fy::Array{wpFloat, 3},
+    fz::Array{wpFloat, 3},
+    axis ::wpInt=wpInt(1)
+               )
+    if axis == 1
+        dims = size(fx[:,:,:])
+        fieldstrength = zeros(wpFloat, dims)
+        for i = 1:dims[1]
+            for j = 1:dims[2]
+                for k = 1:dims[3]
+                    fieldstrength[i,j,k] = √(fx[i,j,k]^2 + 
+                                             fy[i,j,k]^2 +
+                                             fz[i,j,k]^2)
+                end # loop k
+            end # look j
+        end # loop i
+    elseif axis == 4
+        dims = size(fx[:,:,:])
+        fieldstrength = zeros(wpFloat, dims)
+        for i = 1:dims[1]
+            for j = 1:dims[2]
+                for k = 1:dims[3]
+                    fieldstrength[i,j,k] = √(fx[i,j,k,1]^2 + 
+                                             fy[i,j,k,2]^2 +
+                                             fz[i,j,k,3]^2)
+                end # loop k
+            end # look j
+        end # loop i
+    else
+        println("Error: Yours axes are wierd...")
+    end # if
+    return fieldstrength
+end # function norm4
+
 
 
 #----------------#

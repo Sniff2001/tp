@@ -275,7 +275,7 @@ end # function derivateCentral
 #|
 function derivateCentral(field      ::Array{wpFloat, 3},
                          gridSpacing::wpFloat,
-                         axis       ::Tuple{wpInt, wpInt, wpInt}
+                         axis       ::Tuple{Int64, Int64, Int64}
                          )
     ax1 = -1 .* axis
     return (circshift(field, ax1) - circshift(field, axis))/2gridSpacing
@@ -288,7 +288,7 @@ First and last two grid point are ill calculated.
 """
 function derivate4thOrder(field      ::Array{wpFloat, 3},
                           gridSpacing::wpFloat,
-                          axis       ::Tuple{wpInt, wpInt, wpInt}
+                          axis       ::Tuple{Int64, Int64, Int64}
                           )
     ax1 = -2 .* axis
     ax2 = -1 .* axis
@@ -328,7 +328,7 @@ function ∇(field::Array{wpFloat, 4},
     ∂fz∂z = scheme(fz, dz, (0,0,1))
     #
     _, nx, ny, nz = size(field)
-    jacobian = zeros(3, 3, nx, ny, nz)
+    jacobian = zeros(wpFloat, 3, 3, nx, ny, nz)
     #
     jacobian[1, 1, :,:,:] = ∂fx∂x
     jacobian[1, 2, :,:,:] = ∂fx∂y
@@ -355,7 +355,7 @@ function ∇(field::Array{wpFloat, 3},
     ∂f∂y = scheme(field, dy, (0,1,0))
     ∂f∂z = scheme(field, dz, (0,0,1))
     nx, ny, nz = size(field)
-    gradient = zeros(3, nx, ny, nz)
+    gradient = zeros(wpFloat, 3, nx, ny, nz)
     gradient[1, :, :, :] = ∂f∂x
     gradient[2, :, :, :] = ∂f∂y
     gradient[3, :, :, :] = ∂f∂z
@@ -370,7 +370,7 @@ function ∇(field::Array{wpFloat, 2},
     dfdx = scheme(field, dx, (1,0,0))
     dfdy = scheme(field, dy, (0,1,0))
     nx, ny = size(field)
-    gradient = zeros(3, nx, ny)
+    gradient = zeros(wpFloat, 3, nx, ny)
     gradient[1, :, :] = ∂f∂x
     gradient[2, :, :] = ∂f∂y
     return gradient
@@ -455,7 +455,7 @@ function curl(field      ::Array{wpFloat, 4},
     ∂fz∂x = derivscheme(fz, dx, derivx)
     ∂fz∂y = derivscheme(fz, dy, derivy)
     _, nx, ny, nz = size(field)
-    result = zeros(3, nx, ny, nz)
+    result = zeros(wpFloat, 3, nx, ny, nz)
     result[1, :, :, :] = ∂fz∂y .- ∂fy∂z
     result[2, :, :, :] = ∂fx∂z .- ∂fz∂x
     result[3, :, :, :] = ∂fy∂x .- ∂fx∂y

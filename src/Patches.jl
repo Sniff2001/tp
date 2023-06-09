@@ -22,7 +22,7 @@ using Interpolations_tp
 # Export      # 
 #-------------#-----------------------------------------------------------------
 export Patch
-export run
+export run!
 
 #-------------#   
 # Main struct # 
@@ -82,6 +82,32 @@ mutable struct Patch
             periodicBC
             )
     end # constructor
+
+    function Patch(
+        expname     ::String,
+        snap        ::Int,
+        expdir      ::String,
+        tp          ::TraceParticle, # The trace particles
+        solver      ::Function,
+        scheme      ::Function,
+        interpolator::Function,
+        dt          ::wpFloat,
+        numSteps    ::wpInt,
+        numParticles::wpInt,
+        periodicBC  ::Tuple{Bool, Bool, Bool}
+        )
+        mesh = Mesh(expname, snap, expdir)
+        new(mesh, 
+            tp, 
+            solver, 
+            scheme, 
+            interpolator, 
+            dt, 
+            numSteps, 
+            numParticles,
+            periodicBC
+            )
+    end # constructor
 end # mutable struct Patch
 
 #---------#
@@ -91,7 +117,7 @@ function run!(patch::Patch)
     for i = 1:patch.numSteps # Over timesteps
         Particles.push!(patch.tp,
                         patch.mesh,
-                        i,
+                        wpInt(i),
                         patch.dt,
                         patch.solver,
                         patch.interpolator,

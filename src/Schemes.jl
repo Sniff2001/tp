@@ -15,7 +15,6 @@ module Schemes
 # Standard libraries
 using LinearAlgebra
 # Internal libraries
-using WorkingPrecision: wpFloat, wpInt
 using Constants:        c, cSqrdInv
 
 export cross
@@ -23,28 +22,28 @@ export cross
 #---------------------------------------#
 # Integration of differential equations #
 #---------------------------------------#---------------------------------------
-function euler(pos::Vector{wpFloat},
-               vel::Vector{wpFloat}, 
-               acc::Vector{wpFloat},
-               dt ::wpFloat
+function euler(pos::Vector{T} where {T<:Real},
+               vel::Vector{T} where {T<:Real}, 
+               acc::Vector{T} where {T<:Real},
+               dt ::Real
                )
     nextPos = @. pos + vel * dt
     nextVel = @. vel + acc * dt
     return nextPos, nextVel
 end # function euler
-function euler(vel::wpFloat,
-               acc::wpFloat,
-               dt ::wpFloat,
+function euler(vel::Real,
+               acc::Real,
+               dt ::Real,
                )
     nextVel = @. vel + acc * dt
     return nextVel
 end # function euler
 
 
-function eulerCromer(pos::Vector{wpFloat},
-                     vel::Vector{wpFloat}, 
-                     acc::Vector{wpFloat},
-                     dt ::wpFloat
+function eulerCromer(pos::Vector{T} where {T<:Real},
+                     vel::Vector{T} where {T<:Real}, 
+                     acc::Vector{T} where {T<:Real},
+                     dt ::Real
                      )
     nextVel = @. vel + acc * dt
     nextPos = @. pos + nextVel * dt
@@ -52,17 +51,17 @@ function eulerCromer(pos::Vector{wpFloat},
 end # function eulerCromer
 
 
-function positionHalfStep(pos::Vector{wpFloat},
-                          vel::Vector{wpFloat},
-                          dt ::wpFloat
+function positionHalfStep(pos::Vector{T} where {T<:Real},
+                          vel::Vector{T} where {T<:Real},
+                          dt ::Real
                           )
     return pos + 0.5dt*vel
 end # function positionHalfStep
 
 
 function euler( # rk1
-    yn     ::Vector{wpFloat}, # 'y' at time step 'n'
-    h      ::wpFloat,         # The time step
+    yn     ::Vector{T} where {T<:Real}, # 'y' at time step 'n'
+    h      ::Real,         # The time step
     f      ::Function,        # the time derivative of 'y'
     args...                   # Variable number of arguments to pass to 'f'.
     )
@@ -71,21 +70,21 @@ function euler( # rk1
 end # function euler
 #|
 function euler( # rk1
-    yn     ::Vector{wpFloat}, # 'y' at time step 'n'
-    h      ::wpFloat,         # The time step
-    f      ::Vector{wpFloat}, # The  time derivative of 'y'
+    yn     ::Vector{T} where {T<:Real}, # 'y' at time step 'n'
+    h      ::Real,         # The time step
+    f      ::Vector{T} where {T<:Real}, # The  time derivative of 'y'
     )
     return yn + h*f
 end # function euler
 
 
 function eulerCromer( # Semi-implicit
-    yn     ::Vector{wpFloat}, # 'y' at time step 'n'
-    h      ::wpFloat,         # The time step
+    yn     ::Vector{T} where {T<:Real}, # 'y' at time step 'n'
+    h      ::Real,         # The time step
     f      ::Function,        # the time derivative of 'y'
     args...                   # Variable number of arguments to pass to 'f'.
     )
-    numdims = trunc(wpInt, length(yn)/2)
+    numdims = trunc(Int64, length(yn)/2)
     # Advance velocity using Euler
     svNext = euler(yn, h, f, args...)
     velNext = svNext[numdims+1:2numdims]
@@ -95,8 +94,8 @@ function eulerCromer( # Semi-implicit
 end # function eulerCromer
 
 function rk4(
-    yn     ::Vector{wpFloat}, # 'y' at time step 'n'
-    h      ::wpFloat,         # The time step
+    yn     ::Vector{T} where {T<:Real}, # 'y' at time step 'n'
+    h      ::Real,         # The time step
     f      ::Function,        # the time derivative of 'y'
     args...                   # Variable number of arguments to pass to 'f'.
     )
@@ -117,12 +116,12 @@ first step involves advancing the position half a time step using
 `positionHalfStep`, and in the last step the position is advanced its final 
 half using the same function but with the new relativistic velocity.
 """
-function vay(vel   ::Vector{wpFloat},
-             bField::Vector{wpFloat},
-             eField::Vector{wpFloat},
-             mass  ::wpFloat,
-             charge::wpFloat,
-             dt    ::wpFloat
+function vay(vel   ::Vector{T} where {T<:Real},
+             bField::Vector{T} where {T<:Real},
+             eField::Vector{T} where {T<:Real},
+             mass  ::Real,
+             charge::Real,
+             dt    ::Real
              )
     # Some factors which use is repeated
     factor1 = 0.5charge*dt/mass
@@ -167,12 +166,12 @@ first step involves advancing the position half a time step using
 `positionHalfStep`, and in the last step the position is advanced its final 
 half using the same function but with the new relativistic velocity.
 """
-function boris(vel   ::Vector{wpFloat},
-               bField::Vector{wpFloat},
-               eField::Vector{wpFloat},
-               mass  ::wpFloat,
-               charge::wpFloat,
-               dt    ::wpFloat
+function boris(vel   ::Vector{T} where {T<:Real},
+               bField::Vector{T} where {T<:Real},
+               eField::Vector{T} where {T<:Real},
+               mass  ::Real,
+               charge::Real,
+               dt    ::Real
                )
     # Some factors which use is repeated
     factor1 = 0.5charge*dt/mass
@@ -214,9 +213,9 @@ end # function boris
 
 """
     dervateUpwind(
-        field::Array{wpFloat, 3},
-        dx   ::Vector{wpFloat},
-        axis ::Tuple{wpInt, wpInt, wpInt}
+        field::Array{T, 3} where {T<:Real},
+        dx   ::Vector{T} where {T<:Real},
+        axis ::Tuple{Integer, Integer, Integer}
     )
 Differentiates a 3D `field` with respect to a specified `axis` using the upwind
 scheme. The grid size may be variable, hence given as the vector `dx`. End point
@@ -224,10 +223,12 @@ of result will be ill-calculated and the derivative will be defined at half grid
 point higher than the input field.
 """
 function derivateUpwind(
-    field::Array{wpFloat, 3},
-    xx   ::Vector{wpFloat},
-    yy   ::Vector{wpFloat},
-    zz   ::Vector{wpFloat},
+    field::Array{T, 3} where {T<:Real},
+    xx   ::Vector{T} where {T<:Real},
+    yy   ::Vector{T} where {T<:Real},
+    zz   ::Vector{T} where {T<:Real},
+    ;
+    wfp::DataType=typeof(field[1])
     )
     ni, nj, nk = size(field)
 
@@ -238,7 +239,7 @@ function derivateUpwind(
         dx = circshift(xx, -1) - xx
         ddx = df ./ dx
     else
-        ddx = zeros(wpFloat, ni,nj,nk)
+        ddx = zeros(wfp, ni,nj,nk)
     end
 
     if length(yy) > 1
@@ -246,14 +247,14 @@ function derivateUpwind(
         dy = circshift(yy, -1) - yy
         ddy = df ./ dy'
     else
-        ddy = zeros(wpFloat, ni, nj, nk)
+        ddy = zeros(wfp, ni, nj, nk)
     end
 
     if length(zz) > 1
         df = circshift(field, (0,0,-1)) - field
         dz = circshift(zz, -1) - zz
         # I don't know of a fast method for the 3rd dimension
-        ddz = zeros(wpFloat, ni, nj, nk)
+        ddz = zeros(wfp, ni, nj, nk)
         for k = 1:nk
             ddz[:,:,k] = df[:,:,k] / dz[k]
         end
@@ -267,14 +268,14 @@ end #function derivateUpwind
     derivateCentral(field, dx)
 First and last grid point are ill calculated.
 """
-function derivateCentral(field::Vector{wpFloat},
+function derivateCentral(field::Vector{T} where {T<:Real},
                          dx
                          )
     return (circshift(field, -1) - circshift(field, 1))/2dx
 end # function derivateCentral
 #|
-function derivateCentral(field      ::Array{wpFloat, 3},
-                         gridSpacing::wpFloat,
+function derivateCentral(field      ::Array{T, 3} where {T<:Real},
+                         gridSpacing::Real,
                          axis       ::Tuple{Int64, Int64, Int64}
                          )
     ax1 = -1 .* axis
@@ -286,8 +287,8 @@ end # function derivateCentral
     derivate4thOrder(field, dx)
 First and last two grid point are ill calculated.
 """
-function derivate4thOrder(field      ::Array{wpFloat, 3},
-                          gridSpacing::wpFloat,
+function derivate4thOrder(field      ::Array{T, 3} where {T<:Real},
+                          gridSpacing::Real,
                           axis       ::Tuple{Int64, Int64, Int64}
                           )
     ax1 = -2 .* axis
@@ -305,11 +306,13 @@ field and the Jacobian of a 3D vector field. Requires grid spacing on all three
 axis and the numerical scheme as arguments. The scheme is given as a function 
 type, e.g. Schemes.derivateCentral.
 """
-function ∇(field::Array{wpFloat, 4},
-           dx   ::wpFloat,
-           dy   ::wpFloat,
-           dz   ::wpFloat,
+function ∇(field::Array{T, 4} where {T<:Real},
+           dx   ::Real,
+           dy   ::Real,
+           dz   ::Real,
            scheme::Function
+           ;
+           wfp::DataType=typeof(field[1])
            )
     fx = field[1,:,:,:]
     fy = field[2,:,:,:]
@@ -328,7 +331,7 @@ function ∇(field::Array{wpFloat, 4},
     ∂fz∂z = scheme(fz, dz, (0,0,1))
     #
     _, nx, ny, nz = size(field)
-    jacobian = zeros(wpFloat, 3, 3, nx, ny, nz)
+    jacobian = zeros(wfp, 3, 3, nx, ny, nz)
     #
     jacobian[1, 1, :,:,:] = ∂fx∂x
     jacobian[1, 2, :,:,:] = ∂fx∂y
@@ -345,32 +348,36 @@ function ∇(field::Array{wpFloat, 4},
     return jacobian
 end # function ∇ 
 #|
-function ∇(field::Array{wpFloat, 3},
-           dx   ::wpFloat,
-           dy   ::wpFloat,
-           dz   ::wpFloat,
+function ∇(field::Array{T, 3} where {T<:Real},
+           dx   ::Real,
+           dy   ::Real,
+           dz   ::Real,
            scheme::Function
+           ;
+           wfp::DataType=typeof(field[1])
            )
     ∂f∂x = scheme(field, dx, (1,0,0))
     ∂f∂y = scheme(field, dy, (0,1,0))
     ∂f∂z = scheme(field, dz, (0,0,1))
     nx, ny, nz = size(field)
-    gradient = zeros(wpFloat, 3, nx, ny, nz)
+    gradient = zeros(wfp, 3, nx, ny, nz)
     gradient[1, :, :, :] = ∂f∂x
     gradient[2, :, :, :] = ∂f∂y
     gradient[3, :, :, :] = ∂f∂z
     return gradient
 end # function ∇ 
 #|
-function ∇(field::Array{wpFloat, 2},
-           dx   ::wpFloat,
-           dy   ::wpFloat,
+function ∇(field::Array{T, 2} where {T<:Real},
+           dx   ::Real,
+           dy   ::Real,
            scheme::Function
+           ;
+           wfp::DataType=typeof(field[1])
            )
     dfdx = scheme(field, dx, (1,0,0))
     dfdy = scheme(field, dy, (0,1,0))
     nx, ny = size(field)
-    gradient = zeros(wpFloat, 3, nx, ny)
+    gradient = zeros(wfp, 3, nx, ny)
     gradient[1, :, :] = ∂f∂x
     gradient[2, :, :] = ∂f∂y
     return gradient
@@ -379,11 +386,13 @@ end # function ∇
 """
 Newer versions of the gradient, allowing for non-uniform structured grid.
 """
-function ∇(field::Array{wpFloat, 4},
-           xx   ::Vector{wpFloat},
-           yy   ::Vector{wpFloat},
-           zz   ::Vector{wpFloat},
+function ∇(field::Array{T, 4} where {T<:Real},
+           xx   ::Vector{T} where {T<:Real},
+           yy   ::Vector{T} where {T<:Real},
+           zz   ::Vector{T} where {T<:Real},
            scheme::Function
+           ;
+           wfp::DataType=typeof(field[1])
            )
     #
     fx = field[1,:,:,:]
@@ -395,7 +404,7 @@ function ∇(field::Array{wpFloat, 4},
     ∂fz∂x, ∂fz∂y, ∂fz∂z = scheme(fz, xx, yy, zz)
     #
     _, nx, ny, nz = size(field)
-    jacobian = zeros(wpFloat, 3, 3, nx, ny, nz)
+    jacobian = zeros(wfp, 3, 3, nx, ny, nz)
     #
     jacobian[1, 1, :,:,:] = ∂fx∂x
     jacobian[1, 2, :,:,:] = ∂fx∂y
@@ -412,17 +421,19 @@ function ∇(field::Array{wpFloat, 4},
     return jacobian
 end # function ∇
 #|
-function ∇(field::Array{wpFloat, 3},
-           xx   ::Vector{wpFloat},
-           yy   ::Vector{wpFloat},
-           zz   ::Vector{wpFloat},
+function ∇(field::Array{T, 3} where {T<:Real},
+           xx   ::Vector{T} where {T<:Real},
+           yy   ::Vector{T} where {T<:Real},
+           zz   ::Vector{T} where {T<:Real},
            scheme::Function
+           ;
+           wfp::DataType=typeof(field[1])
            )
         
     ∂f∂x, ∂f∂y, ∂f∂z = scheme(field, xx, yy, zz)
 
     nx, ny, nz = size(field)
-    gradient = zeros(wpFloat, 3, nx, ny, nz)
+    gradient = zeros(wfp, 3, nx, ny, nz)
     gradient[1, :, :, :] = ∂f∂x
     gradient[2, :, :, :] = ∂f∂y
     gradient[3, :, :, :] = ∂f∂z
@@ -432,14 +443,16 @@ end # function ∇
 
 
 """
-    curl(field, gridsizes, derivscheme)
+    curlfield, gridsizes, derivscheme)
 The curl operator. Calculates the curl of a 3-dimensional vector
 field. Requires uniform grid spacing on all three axis. 
 arguments. The scheme is given as a function type, e.g. Schemes.derivateCentral.
 """
-function curl(field      ::Array{wpFloat, 4},
-              gridsizes  ::Tuple{wpFloat, wpFloat, wpFloat},
+function curl(field      ::Array{T, 4} where {T<:Real},
+              gridsizes  ::Tuple{Real, Real, Real},
               derivscheme::Function
+              ;
+              wfp::DataType=typeof(field[1])
               )
     dx, dy, dz = gridsizes
     fx = field[1,:,:,:]
@@ -455,7 +468,7 @@ function curl(field      ::Array{wpFloat, 4},
     ∂fz∂x = derivscheme(fz, dx, derivx)
     ∂fz∂y = derivscheme(fz, dy, derivy)
     _, nx, ny, nz = size(field)
-    result = zeros(wpFloat, 3, nx, ny, nz)
+    result = zeros(wfp, 3, nx, ny, nz)
     result[1, :, :, :] = ∂fz∂y .- ∂fy∂z
     result[2, :, :, :] = ∂fx∂z .- ∂fz∂x
     result[3, :, :, :] = ∂fy∂x .- ∂fx∂y
@@ -469,11 +482,13 @@ field. Requires grid spacing on all three axis (may be non-uniform)
 The scheme is given as a function type, e.g. Schemes.derivateCentral.
 """
 function curl(
-    field      ::Array{wpFloat, 4},
-    dx         ::Vector{wpFloat},
-    dy         ::Vector{wpFloat},
-    dz         ::Vector{wpFloat},
+    field      ::Array{T, 4} where {T<:Real},
+    dx         ::Vector{T} where {T<:Real},
+    dy         ::Vector{T} where {T<:Real},
+    dz         ::Vector{T} where {T<:Real},
     derivscheme::Function
+    ;
+    wfp::DataType=typeof(field[1])
     )
     fx = field[1,:,:,:]
     fy = field[2,:,:,:]
@@ -488,7 +503,7 @@ function curl(
     ∂fz∂x = derivscheme(fz, dx, derivx)
     ∂fz∂y = derivscheme(fz, dy, derivy)
     _, nx, ny, nz = size(field)
-    result = zeros(wpFloat, 3, nx, ny, nz)
+    result = zeros(wfp, 3, nx, ny, nz)
     result[1, :, :, :] = ∂fz∂y .- ∂fy∂z
     result[2, :, :, :] = ∂fx∂z .- ∂fz∂x
     result[3, :, :, :] = ∂fy∂x .- ∂fx∂y
@@ -496,19 +511,21 @@ function curl(
 end # function curl
 #|
 function curl(
-    fx         ::Array{wpFloat, 3},
-    fy         ::Array{wpFloat, 3},
-    fz         ::Array{wpFloat, 3},
-    xx         ::Vector{wpFloat},
-    yy         ::Vector{wpFloat},
-    zz         ::Vector{wpFloat},
+    fx         ::Array{T, 3} where {T<:Real},
+    fy         ::Array{T, 3} where {T<:Real},
+    fz         ::Array{T, 3} where {T<:Real},
+    xx         ::Vector{T} where {T<:Real},
+    yy         ::Vector{T} where {T<:Real},
+    zz         ::Vector{T} where {T<:Real},
     derivscheme::Function
+    ;
+    wfp::DataType=typeof(field[1])
     )
     ∂fx∂x, ∂fx∂y, ∂fx∂z = derivscheme(fx, xx, yy, zz)
     ∂fy∂x, ∂fy∂y, ∂fy∂z = derivscheme(fy, xx, yy, zz)
     ∂fz∂x, ∂fz∂y, ∂fz∂z = derivscheme(fz, xx, yy, zz)
     nx, ny, nz = size(fx)
-    result = zeros(wpFloat, 3, nx, ny, nz)
+    result = zeros(wfp, 3, nx, ny, nz)
     result[1, :, :, :] = ∂fz∂y .- ∂fy∂z
     result[2, :, :, :] = ∂fx∂z .- ∂fz∂x
     result[3, :, :, :] = ∂fy∂x .- ∂fx∂y
@@ -521,11 +538,13 @@ end # function curl
 Method for computing the cross product between two 3D vector-fields.
 """
 function LinearAlgebra.cross(
-    f::Array{wpFloat, 4},
-    g::Array{wpFloat, 4}
+    f::Array{T, 4} where {T<:Real},
+    g::Array{T, 4} where {T<:Real}
+    ;
+    wfp::DataType=typeof(field[1])
     )
     _, ni, nj, nk = size(f)
-    crossproduct = zeros(wpFloat, 3, ni, nj, nk)
+    crossproduct = zeros(wfp, 3, ni, nj, nk)
     for i = 1:ni
         for j = 1:nj
             for k = 1:nk

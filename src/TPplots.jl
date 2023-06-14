@@ -18,7 +18,6 @@ const plt = PyPlot
 using LinearAlgebra:    norm
 using LaTeXStrings
 # Internal libraries
-using WorkingPrecision: wpInt, wpFloat
 using Meshes
 using Patches:          Patch
 using Particles
@@ -126,7 +125,7 @@ end # function streamplotslice
 
 function pcolormesh_xz!(
     ax     ::plt.PyCall.PyObject,
-    A      ::Matrix{wpFloat},
+    A      ::Matrix{T} where {T<:Real},
     mesh   ::Mesh,
     yflip  ::Bool=False,
     cmlabel::String="",
@@ -152,7 +151,7 @@ end # function pcolormesh_xz!
 
 function pcolormesh_xy!(
     ax     ::plt.PyCall.PyObject,
-    A      ::Matrix{wpFloat},
+    A      ::Matrix{T} where {T<:Real},
     mesh   ::Mesh,
     yflip  ::Bool=False,
     cmlabel::String="",
@@ -178,7 +177,7 @@ end # function pcolormesh_xy!
 
 function pcolormesh_yz!(
     ax     ::plt.PyCall.PyObject,
-    A      ::Matrix{wpFloat},
+    A      ::Matrix{T} where {T<:Real},
     mesh   ::Mesh,
     yflip  ::Bool=False,
     cmlabel::String="",
@@ -290,7 +289,7 @@ function trajectory3D!(
     )
     # It seems that a 3D-projected PyPlot does not support more than ~16300
     # points per graph. Hence we have to skip some data
-    skip = trunc(wpInt, ceil(patch.numSteps/16_000))
+    skip = trunc(Integer, ceil(patch.numSteps/16_000))
     if skip == 0
         skip = 1
     end
@@ -318,8 +317,8 @@ end #function trajectory3D!
 # Particles #
 #-------------------------------------------------------------------------------
 function plotenergydistr(particles::Particles.ParticleSoA, 
-                         snap     ::wpInt,
-                         numbins  ::wpInt,
+                         snap     ::Integer,
+                         numbins  ::Integer,
                          title
                          )
     absvel = norm2(particles.vel[:, :, snap])
@@ -331,8 +330,8 @@ function plotenergydistr(particles::Particles.ParticleSoA,
 end # function plotenergydistr
 #
 function plotenergydistr(particles::Particles.GCAParticleSoA, 
-                         snap     ::wpInt,
-                         numbins  ::wpInt,
+                         snap     ::Integer,
+                         numbins  ::Integer,
                          title
                          )
     vparal = particles.vparal[:, snap]
@@ -342,8 +341,8 @@ function plotenergydistr(particles::Particles.GCAParticleSoA,
     Plots.ylabel!("Number of particles")
     Plots.title!(title)
 end # function plotenergydistr
-function plotenergydistr(absvel ::Vector{wpFloat},
-                         numbins::wpInt,
+function plotenergydistr(absvel ::Vector{T} where {T<:Real},
+                         numbins::Integer,
                          title
                          )
     binrange = range(minimum(absvel), maximum(absvel), length=numbins)
@@ -357,9 +356,9 @@ end # function plotenergydistr
 
 function plotperiodictrajectory(
     ax::plt.PyCall.PyObject,
-    pos::Matrix{wpFloat},
+    pos::Matrix{T} where {T<:Real},
     partidx::Integer,
-    domain ::Matrix{wpFloat},
+    domain ::Matrix{T} where {T<:Real},
     cm,
     colorrange,
     linestyle::String,
@@ -448,8 +447,8 @@ end # function plotKE
 #|
 function plotKE(
     ax   ::plt.PyCall.PyObject,
-    Ek   ::Matrix{wpFloat},
-    times::Vector{wpFloat},
+    Ek   ::Matrix{T} where {T<:Real},
+    times::Vector{T} where {T<:Real},
     )
     nj, ni = size(Ek)
     for j = 1:nj
@@ -459,8 +458,8 @@ end
 #|
 function plotKE(
     ax   ::plt.PyCall.PyObject,
-    Ek   ::Tuple{Matrix{wpFloat}, Matrix{wpFloat}, Matrix{wpFloat}},
-    times::Vector{wpFloat},
+    Ek   ::Tuple{Matrix{T} where {T<:Real}, Matrix{T} where {T<:Real}, Matrix{T} where {T<:Real}},
+    times::Vector{T} where {T<:Real},
     )
     Ekk, Ekparal, Ekperp = Ek
     nj, ni = size(Ekk)
@@ -516,7 +515,7 @@ end # function plot3D
 #-------------------------------------------------------------------------------
 function plotKE(
     tp       ::ParticleSoA,
-    times    ::Vector{wpFloat},
+    times    ::Vector{T} where {T<:Real},
     mesh     ::Mesh,
     labelling::Bool=false,
     )
@@ -633,7 +632,7 @@ function generatefieldline(
 end 
 
 
-function plotfieldlines(mesh, numlines::wpInt, stepsize, interpolator, scheme)
+function plotfieldlines(mesh, numlines::Integer, stepsize, interpolator, scheme)
     fieldstrength = norm4(mesh.bField)
     maxfieldstrength = maximum(fieldstrength)
     # Create a function which returns the field strength at a given position.
@@ -651,7 +650,7 @@ function plotfieldlines(mesh, numlines::wpInt, stepsize, interpolator, scheme)
                                          mesh.domain)
     # Assumes the lines are no greater than twice the maximum domain extent.
     maxextent = maximum(mesh.domain[:, 2] .- mesh.domain[:, 1]) 
-    numsteps = wpInt(2maxextent/stepsize)
+    numsteps = Integer(2maxextent/stepsize)
     lines = zeros((mesh.numdims, numlines, 2*numsteps+2))
     for i = 1:numlines
         l, _, _ = generatefieldline(mesh,
@@ -673,7 +672,7 @@ end
 #|
 function plotfieldlines(
     mesh,
-    initpos::Matrix{wpFloat},
+    initpos::Matrix{T} where {T<:Real},
     stepsize,
     interpolator,
     scheme
@@ -681,7 +680,7 @@ function plotfieldlines(
     numlines = size(initpos)[2]
     positions = initpos
     maxextent = maximum(mesh.domain[:, 2] .- mesh.domain[:, 1]) 
-    numsteps = wpInt(2maxextent/stepsize)
+    numsteps = Integer(2maxextent/stepsize)
     lines = zeros((mesh.numdims, numlines, 2*numsteps+2))
     for i = 1:numlines
         l, _, _ = generatefieldline(mesh,

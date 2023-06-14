@@ -11,7 +11,6 @@
 
 module Patches
 
-using WorkingPrecision: wpFloat, wpInt
 using Meshes
 using Particles
 using Solvers
@@ -33,9 +32,9 @@ mutable struct Patch
     solver      ::Function
     scheme      ::Function
     interpolator::Function
-    dt          ::wpFloat
-    numSteps    ::wpInt
-    numParticles::wpInt
+    dt          ::Real
+    numSteps    ::Integer
+    numParticles::Integer
     periodicBC  ::Tuple{Bool, Bool, Bool}
 
     # Constructors
@@ -45,9 +44,9 @@ mutable struct Patch
                    solver      ::Function,
                    scheme      ::Function,
                    interpolator::Function,
-                   dt          ::wpFloat,
-                   numSteps    ::wpInt,
-                   numParticles::wpInt
+                   dt          ::Real,
+                   numSteps    ::Integer,
+                   numParticles::Integer
                    )
         new(mesh, 
             tp, 
@@ -66,9 +65,9 @@ mutable struct Patch
                    solver      ::Function,
                    scheme      ::Function,
                    interpolator::Function,
-                   dt          ::wpFloat,
-                   numSteps    ::wpInt,
-                   numParticles::wpInt,
+                   dt          ::Real,
+                   numSteps    ::Integer,
+                   numParticles::Integer,
                    periodicBC  ::Tuple{Bool, Bool, Bool}
                    )
         new(mesh, 
@@ -91,9 +90,9 @@ mutable struct Patch
         solver      ::Function,
         scheme      ::Function,
         interpolator::Function,
-        dt          ::wpFloat,
-        numSteps    ::wpInt,
-        numParticles::wpInt,
+        dt          ::Real,
+        numSteps    ::Integer,
+        numParticles::Integer,
         periodicBC  ::Tuple{Bool, Bool, Bool}
         )
         mesh = Mesh(expname, snap, expdir)
@@ -117,7 +116,7 @@ function run!(patch::Patch)
     for i = 1:patch.numSteps # Over timesteps
         Particles.push!(patch.tp,
                         patch.mesh,
-                        wpInt(i),
+                        i,
                         patch.dt,
                         patch.solver,
                         patch.interpolator,
@@ -157,9 +156,9 @@ function Base.Multimedia.display(p::Patch)
         solver      ::Function
         scheme      ::Function
         interpolator::Function
-        dt          ::wpFloat
-        numSteps    ::wpInt
-        numParticles::wpInt""")
+        dt          ::Real
+        numSteps    ::Integer
+        numParticles::Integer""")
 end # function Base.Multimedia.display
 #-------------------------------------------------------------------------------
 

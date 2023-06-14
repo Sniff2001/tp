@@ -11,7 +11,6 @@
 
 module Interpolations_tp
 
-using WorkingPrecision: wpFloat, wpInt
 using Meshes
 
 export gridinterp
@@ -24,12 +23,12 @@ export bilinear_xz
 # Type of interpolation #
 #-------------------------------------------------------------------------------
 function gridinterp(
-    tensorfield ::AbstractArray{wpFloat},
+    tensorfield ::AbstractArray{T} where {T<:Real},
     interpolator::Function,
-    pos         ::Vector{wpFloat},
-    xx          ::Vector{wpFloat},
-    yy          ::Vector{wpFloat},
-    zz          ::Vector{wpFloat}
+    pos         ::Vector{T} where {T<:Real},
+    xx          ::Vector{T} where {T<:Real},
+    yy          ::Vector{T} where {T<:Real},
+    zz          ::Vector{T} where {T<:Real}
     )
     numDims = 3
     x, y, z = pos
@@ -49,7 +48,7 @@ end # function gridinterp
 function gridinterp(
     mesh        ::Mesh,
     interpolator::Function,
-    pos         ::Vector{wpFloat}
+    pos         ::Vector{T} where {T<:Real}
     )
     numDims = 3
     x, y, z = pos
@@ -73,14 +72,14 @@ end # function gridinterp
 Finds the position of `point` in the vector `coords` using binary search.
 Returns its lower neighbour.
 """
-function locateCell(coords::Vector{wpFloat},
+function locateCell(coords::Vector{T} where {T<:Real},
                     point ::Number
                     )
     # Initial bounds
     low = 1
     high = length(coords)
     while  high > low + 1 # While we haven't found the cell
-        mid  = floor(wpInt, (high + low)/2)
+        mid  = floor(Int64, (high + low)/2)
         if point > coords[mid]
             low = mid 
         elseif point < coords[mid]
@@ -98,12 +97,12 @@ end # function locateCell
 # Interpolation steps #
 #-------------------------------------------------------------------------------
 function trilinear( # Arbitrary vector-field
-    tensorfield ::AbstractArray{wpFloat},
-    xx          ::Vector{wpFloat},
-    yy          ::Vector{wpFloat},
-    zz          ::Vector{wpFloat},
+    tensorfield ::AbstractArray{T} where {T<:Real},
+    xx          ::Vector{T} where {T<:Real},
+    yy          ::Vector{T} where {T<:Real},
+    zz          ::Vector{T} where {T<:Real},
     (i,j,k)::Tuple{Integer, Integer, Integer},
-    (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
+    (x,y,z)::Tuple{Real, Real, Real}
     )
     coefficients = trilinearcoefficients(xx,
                                          yy,
@@ -119,7 +118,7 @@ end # function trilinear
 function trilinear( # Method for passing the mesh-struct
     mesh   ::Mesh,
     (i,j,k)::Tuple{Integer, Integer, Integer},
-    (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
+    (x,y,z)::Tuple{Real, Real, Real}
     )
     coefficients = trilinearcoefficients(mesh.xCoords,
                                          mesh.yCoords,
@@ -137,12 +136,12 @@ end # function trilinear
 
 
 function bilinear_xz( # Arbitrary vector-field
-    tensorfield ::AbstractArray{wpFloat},
-    xx          ::Vector{wpFloat},
-    yy          ::Vector{wpFloat},
-    zz          ::Vector{wpFloat},
+    tensorfield ::AbstractArray{T} where {T<:Real},
+    xx          ::Vector{T} where {T<:Real},
+    yy          ::Vector{T} where {T<:Real},
+    zz          ::Vector{T} where {T<:Real},
     (i,j,k)::Tuple{Integer, Integer, Integer},
-    (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
+    (x,y,z)::Tuple{Real, Real, Real}
     )
     coefficients = bilinearcoefficients(xx,
                                         zz,
@@ -157,7 +156,7 @@ end # function trilinear
 function bilinear_xz( 
     mesh   ::Mesh,
     (i,j,k)::Tuple{Integer, Integer, Integer},
-    (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
+    (x,y,z)::Tuple{Real, Real, Real}
     )
     coefficients = bilinearcoefficients(mesh.xCoords,
                                         mesh.zCoords,
@@ -176,7 +175,7 @@ end # function trilinear
 function trilinearGCA(
     mesh   ::Mesh,
     (i,j,k)::Tuple{Integer, Integer, Integer},
-    (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
+    (x,y,z)::Tuple{Real, Real, Real}
     )
     coefficients = trilinearcoefficients(mesh.xCoords,
                                          mesh.yCoords,
@@ -204,11 +203,11 @@ end # function trilinearGCA
 
 
 function trilinearcoefficients(
-    xCoords::Vector{wpFloat},
-    yCoords::Vector{wpFloat},
-    zCoords::Vector{wpFloat},
+    xCoords::Vector{T} where {T<:Real},
+    yCoords::Vector{T} where {T<:Real},
+    zCoords::Vector{T} where {T<:Real},
     (i,j,k)::Tuple{Integer, Integer, Integer},
-    (x,y,z)::Tuple{wpFloat, wpFloat, wpFloat}
+    (x,y,z)::Tuple{Real, Real, Real}
     )
     t = (x - xCoords[i])/(xCoords[i + 1] - xCoords[i])
     u = (y - yCoords[j])/(yCoords[j + 1] - yCoords[j])
@@ -228,10 +227,10 @@ end # function trinlinearcoefficients
 
 
 function bilinearcoefficients(
-    xCoords::Vector{wpFloat},
-    yCoords::Vector{wpFloat},
+    xCoords::Vector{T} where {T<:Real},
+    yCoords::Vector{T} where {T<:Real},
     (i,j)::Tuple{Integer, Integer},
-    (x,y)::Tuple{wpFloat, wpFloat}
+    (x,y)::Tuple{Real, Real}
     )
     t = (x - xCoords[i])/(xCoords[i + 1] - xCoords[i])
     u = (y - yCoords[j])/(yCoords[j + 1] - yCoords[j])
@@ -245,9 +244,9 @@ function bilinearcoefficients(
 end # bilinearcoefficients
 
 function trilinearsum(
-    tensorfield::Array{wpFloat, 5},
+    tensorfield::Array{T, 5} where {T<:Real},
     (i,j,k)    ::Tuple{Integer, Integer, Integer},
-    c          ::NTuple{8, wpFloat}
+    c          ::NTuple{8, Real}
     )
     c0, c1, c2, c3, c4, c5, c6, c7 = c
     A0 = tensorfield[:, :,   i,   j,   k]
@@ -263,9 +262,9 @@ function trilinearsum(
 end # function trilinearsum
 #|
 function trilinearsum(
-    vectorfield::Array{wpFloat, 4},
+    vectorfield::Array{T, 4} where {T<:Real},
     (i,j,k)    ::Tuple{Integer, Integer, Integer},
-    c          ::NTuple{8, wpFloat}
+    c          ::NTuple{8, Real}
     )
     c0, c1, c2, c3, c4, c5, c6, c7 = c
     A0 = vectorfield[:,   i,   j,   k]
@@ -281,9 +280,9 @@ function trilinearsum(
 end # function trilinearsum
 #|
 function trilinearsum(
-    scalarfield::Array{wpFloat, 3},
+    scalarfield::Array{T, 3} where {T<:Real},
     (i,j,k)    ::Tuple{Integer, Integer, Integer},
-    c          ::NTuple{8, wpFloat}
+    c          ::NTuple{8, Real}
     )
     c0, c1, c2, c3, c4, c5, c6, c7 = c
     A0 = scalarfield[  i,   j,   k]
@@ -300,9 +299,9 @@ end # function trilinearsum
 
 
 function bilinearsum(
-    tensorfield::Array{wpFloat, 4},
+    tensorfield::Array{T, 4} where {T<:Real},
     (i,j)      ::Tuple{Integer, Integer},
-    c          ::NTuple{4, wpFloat}
+    c          ::NTuple{4, Real}
     )
     c0, c1, c2, c3 = c
     A0 = tensorfield[:, :,   i,   j]
@@ -314,9 +313,9 @@ function bilinearsum(
 end # bilinearsum
 #|
 function bilinearsum(
-    vectorfield::Array{wpFloat, 3},
+    vectorfield::Array{T, 3} where {T<:Real},
     (i,j)      ::Tuple{Integer, Integer},
-    c          ::NTuple{4, wpFloat}
+    c          ::NTuple{4, Real}
     )
     c0, c1, c2, c3 = c
     A0 = vectorfield[:,   i,   j]
@@ -328,9 +327,9 @@ function bilinearsum(
 end # bilinearsum
 #|
 function bilinearsum(
-    scalarfield::Array{wpFloat, 2},
+    scalarfield::Array{T, 2} where {T<:Real},
     (i,j)      ::Tuple{Integer, Integer},
-    c          ::NTuple{4, wpFloat}
+    c          ::NTuple{4, Real}
     )
     c0, c1, c2, c3 = c
     A0 = scalarfield[  i,   j]

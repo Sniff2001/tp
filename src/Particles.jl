@@ -13,7 +13,6 @@ module Particles
 
 using LinearAlgebra:    norm, ⋅
 
-using WorkingPrecision: wpFloat, wpInt
 using Constants:        m_e, m_p, e
 using Utilities:        norm3
 using Meshes
@@ -41,9 +40,9 @@ export computeμ
 #              mass charge
 specieTable = [m_e   -e     # Electron
                m_p    e     # Proton
-               wpFloat(1.0)  wpFloat( 3.0)     # Unit mass and charge = 3
-               wpFloat(1.0)  wpFloat( 1.0)    # Unit mass and charge
-               wpFloat(1.0)  wpFloat(-1.0)    # Unit mass and negative unit charge
+               1.0   3.0    # Unit mass and charge = 3
+               1.0   1.0    # Unit mass and charge
+               1.0  -1.0    # Unit mass and negative unit charge
                ]
 
 #-------------#   
@@ -57,11 +56,12 @@ abstract type TraceParticle end
 
     
 mutable struct ParticleSoA <: TraceParticle
-    pos    ::Array{wpFloat, 3}
-    vel    ::Array{wpFloat, 3}
-    species::Vector{wpInt}   # Particle specie identifier (e.g. electron, proton)
+    pos    ::Array{T, 3} where {T<:Real}
+    vel    ::Array{T, 3} where {T<:Real}
+    species::Vector{T} where {T<:Integer}   # Particle specie identifier
+                                            # (e.g. electron, proton)
     alive  ::Vector{Bool}
-    weight ::Vector{wpFloat}
+    weight ::Vector{T} where {T<:Real}
     
     
     # Constructors
@@ -73,69 +73,76 @@ mutable struct ParticleSoA <: TraceParticle
     the creation of the type accordingly, by adding the initial conditions to
     an higher order array.
     """
-    function ParticleSoA( # "Default" constructor
-        pos    ::Array{wpFloat, 3},
-        vel    ::Array{wpFloat, 3},
-        species::Vector{wpInt},   # Particle specie ID (e.g. electron, proton)
+    # "Default" constructor
+    function ParticleSoA( 
+        pos    ::Array{T, 3} where {T<:Real},
+        vel    ::Array{T, 3} where {T<:Real},
+        species::Vector{T} where {T<:Integer},   # Particle specie ID
+                                                 # (e.g. electron, proton)
         alive  ::Vector{Bool},
-        weight ::Vector{wpFloat}
+        weight ::Vector{T} where {T<:Real}
         )
         return new(pos, vel, species, alive, weight)
     end # constructor 
     #|
     function ParticleSoA(
-        pos    ::Array{wpFloat, 3},
-        vel    ::Array{wpFloat, 3},
-        species::Vector{wpInt},   # Particle specie ID (e.g. electron, proton)
+        pos    ::Array{T, 3} where {T<:Real},
+        vel    ::Array{T, 3} where {T<:Real},
+        species::Vector{T} where {T<:Integer},   # Particle specie ID
+                                                 # (e.g. electron, proton)
+        ;
+        alive  ::Vector{Bool}=ones(Bool, size(pos)[2]),
+        weight ::Vector{T} where {T<:Real}=ones(wfp, size(pos)[2])
         )
-        numDims, numParticles = size(pos)
-        alive = ones(Bool, numParticles)
-        weight = ones(wpFloat, numParticles)
         return new(pos, vel, species, alive, weight)
     end # constructor 
     #|
     function ParticleSoA(
-        pos0     ::Matrix{wpFloat},
-        vel0     ::Matrix{wpFloat},
-        species ::Vector{wpInt},
+        pos0     ::Matrix{T} where {T<:Real},
+        vel0     ::Matrix{T} where {T<:Real},
+        species ::Vector{T} where {T<:Integer},
         numSteps::Integer
+        ;
+        wfp::DataType=typeof(pos0[1])
         )
         numDims, numParticles = size(pos0)
-        positions  = zeros(wpFloat, numDims, numParticles, numSteps + 1)
-        velocities = zeros(wpFloat, numDims, numParticles, numSteps + 1)
+        positions  = zeros(wfp, numDims, numParticles, numSteps + 1)
+        velocities = zeros(wfp, numDims, numParticles, numSteps + 1)
         positions[:, :, 1] .= pos0
         velocities[:, :, 1] .= vel0
         alive = ones(Bool, numParticles)
-        weight = ones(wpFloat, numParticles)
+        weight = ones(wfp, numParticles)
         return new(positions, velocities, species, alive, weight)
     end # constructor 
     #|
     function ParticleSoA(
-        pos0    ::Vector{wpFloat},
-        vel0    ::Vector{wpFloat},
-        species ::Vector{wpInt},
+        pos0    ::Vector{T} where {T<:Real},
+        vel0    ::Vector{T} where {T<:Real},
+        species ::Vector{T} where {T<:Integer},
         numSteps::Integer
+        ;
+        wfp::DataType=typeof(pos0[1])
         )
         numParticles = 1
         numDims = length(pos0)
-        positions  = zeros(wpFloat, numDims, numParticles, numSteps + 1)
-        velocities = zeros(wpFloat, numDims, numParticles, numSteps + 1)
+        positions  = zeros(wfp, numDims, numParticles, numSteps + 1)
+        velocities = zeros(wfp, numDims, numParticles, numSteps + 1)
         positions[:, :, 1] .= pos0
         velocities[:, :, 1] .= vel0
         alive = ones(Bool, numParticles)
-        weight = ones(wpFloat, numParticles)
+        weight = ones(wfp, numParticles)
         return new(positions, velocities, species, alive, weight)
     end # constructor 
 end # mutable struct ParticleSoA
 
 
 mutable struct GCAParticleSoA <: TraceParticle
-    R      ::Array{wpFloat, 3} # The position of the guiding centre
-    vparal ::Matrix{wpFloat}   # Velocity parallel to the magnetic field
-    μ      ::Vector{wpFloat}   # Magnetic moment μ of particle
-    species::Vector{wpInt}     # Particle specie ID (e.g. electron, proton)
+    R      ::Array{T, 3} where {T<:Real} # The position of the guiding centre
+    vparal ::Matrix{T} where {T<:Real}   # Velocity parallel to the magnetic field
+    μ      ::Vector{T} where {T<:Real}   # Magnetic moment μ of particle
+    species::Vector{T} where {T<:Integer}# Particle specie ID (e.g. electron, proton)
     alive  ::Vector{Bool}
-    weight ::Vector{wpFloat}
+    weight ::Vector{T} where {T<:Real}
     
     
     # Constructors
@@ -147,50 +154,56 @@ mutable struct GCAParticleSoA <: TraceParticle
     the creation of the type accordingly, by adding the initial conditions to
     an higher order array.
     """
-    function GCAParticleSoA( # "Default" constructor
-        R      ::Array{wpFloat, 3}, # The position of the guiding centre
-        vparal ::Matrix{wpFloat},   # The velocity parallel to the magnetic field
-        μ      ::Vector{wpFloat},   # Magnetic moment μ of particle
-        species::Vector{wpInt},     # Particle specie identifier
-                                    #   (e.g. electron, proton)
+    function GCAParticleSoA( 
+        jR      ::Array{T, 3} where {T<:Real},# The position of the guiding centre
+        vparal ::Matrix{T} where {T<:Real},   # The velocity parallel to the
+                                              # magnetic field
+        μ      ::Vector{T} where {T<:Real},   # Magnetic moment μ of particle
+        species::Vector{T} where {T<:Integer},# Particle specie identifier
+                                              #   (e.g. electron, proton)
         alive  ::Vector{Bool},
-        weight ::Vector{wpFloat}
+        weight ::Vector{T} where {T<:Real}
         )
         return new(R, vparal, μ, species, alive, weight)
     end # constructor 
     #|
-    function GCAParticleSoA( # Given only initial conditions
-        R0      ::Matrix{wpFloat},
-        vparal0 ::Vector{wpFloat},
-        μ       ::Vector{wpFloat},
-        species ::Vector{wpInt},
+    # Given only initial conditions
+    function GCAParticleSoA( 
+        R0      ::Matrix{T} where {T<:Real},
+        vparal0 ::Vector{T} where {T<:Real},
+        μ       ::Vector{T} where {T<:Real},
+        species ::Vector{T} where {T<:Integer},
         numSteps::Integer
+        ;
+        wfp::DataType=typeof(R0[1])
         )
         numDims, numParticles = size(R0)
-        R      = zeros(wpFloat, numDims, numParticles, numSteps + 1)
-        vparal = zeros(wpFloat, numParticles, numSteps + 1)
+        R      = zeros(wfp, numDims, numParticles, numSteps + 1)
+        vparal = zeros(wfp, numParticles, numSteps + 1)
         R[:, :, 1] .= R0
         vparal[:, :, 1] .= vparal0
         alive = ones(Bool, numParticles)
-        weight = ones(wpFloat, numParticles)
+        weight = ones(wfp, numParticles)
         return new(R, vparal, μ, species, alive, weight)
     end # constructor 
     #|
     function GCAParticleSoA( # Given only initial conditions
-        R0      ::Vector{wpFloat},
-        vparal0 ::Vector{wpFloat},
-        μ       ::Vector{wpFloat},
-        species ::Vector{wpInt},
+        R0      ::Vector{T} where {T<:Real},
+        vparal0 ::Vector{T} where {T<:Real},
+        μ       ::Vector{T} where {T<:Real},
+        species ::Vector{T} where {T<:Integer},
         numSteps::Integer
+        ;
+        wfp::DataType=typeof(R0[1])
         )
         numParticles = 1
         numDims = length(R0)
-        R      = zeros(wpFloat, numDims, numParticles, numSteps + 1)
-        vparal = zeros(wpFloat, numParticles, numSteps + 1)
+        R      = zeros(wfp, numDims, numParticles, numSteps + 1)
+        vparal = zeros(wfp, numParticles, numSteps + 1)
         R[:, :, 1] .= R0
         vparal[:, :, 1] .= vparal0
         alive = ones(Bool, numParticles)
-        weight = ones(wpFloat, numParticles)
+        weight = ones(wfp, numParticles)
         return new(R, vparal, μ, species, alive, weight)
     end # constructor
 end # mutable struct ParticleSoA
@@ -226,11 +239,11 @@ end # function Base.copy
 function Base.Multimedia.display(tp::ParticleSoA)
     println("""Instance of mutable struct:
     Particles.ParticleSoA <: Particles.TraceParticle
-        pos    ::Array{wpFloat, 3}
-        vel    ::Array{wpFloat, 3}
-        species::Vector{wpInt}   
+        pos    ::Array{T, 3} where {T<:Real}
+        vel    ::Array{T, 3} where {T<:Real}
+        species::Vector{T} where {T<:Integer}   
         alive  ::Vector{Bool}
-        weight ::Vector{wpFloat}
+        weight ::Vector{T} where {T<:Real}
     """)
     println("................................................................")
     println("GCAPaticleSoA.pos:")
@@ -252,12 +265,12 @@ end # function Base.Multimedia.display
 function Base.Multimedia.display(tp::GCAParticleSoA)
     println("""Instance of mutable struct:
     Particles.ParticleSoA <: Particles.TraceParticle
-        R      ::Array{wpFloat, 3} 
-        vparal ::Matrix{wpFloat}   
-        μ      ::Vector{wpFloat}  
-        species::Vector{wpInt}   
+        R      ::Array{T, 3} where {T<:Real} 
+        vparal ::Matrix{T} where {T<:Real}   
+        μ      ::Vector{T} where {T<:Real}  
+        species::Vector{T} where {T<:Integer}   
         alive  ::Vector{Bool}
-        weight ::Vector{wpFloat}
+        weight ::Vector{T} where {T<:Real}
     """)
     println("................................................................")
     println("GCAPaticleSoA.R:")
@@ -306,25 +319,25 @@ end #function reset!
 
 
 function setinitpos!(particles::ParticleSoA,
-                     pos      ::Matrix{wpFloat})
+                     pos      ::Matrix{T} where {T<:Real})
     particles.pos[:, :, 1] .= pos
 end # function setinitpos
 #|
 function setinitpos!(particles::ParticleSoA,
-                     pos      ::Vector{wpFloat},
-                     partIdx  ::wpInt)
+                     pos      ::Vector{T} where {T<:Real},
+                     partIdx  ::Integer)
     particles.pos[:, partIdx, 1] .= pos
 end # function setinitpos
 
 
 function setinitvel!(particles::ParticleSoA,
-                     vel      ::Matrix{wpFloat})
+                     vel      ::Matrix{T} where {T<:Real})
     particles.vel[:, :, 1] .= vel
 end # function setinitvel
 #|
 function setinitvel!(particles::ParticleSoA,
-                     vel      ::Vector{wpFloat},
-                     partIdx  ::wpInt)
+                     vel      ::Vector{T} where {T<:Real},
+                     partIdx  ::Integer)
     particles.vel[:, partIdx, 1] .= vel
 end # function setinitvel
 
@@ -335,8 +348,8 @@ end # function setinitvel
 function push!(
     tp    ::GCAParticleSoA,
     mesh  ::Mesh,
-    time  ::wpInt,
-    dt    ::wpFloat,
+    time  ::Integer,
+    dt    ::Real,
     solver::Function,
     interp::Function,
     scheme::Function,
@@ -367,8 +380,8 @@ end # function push!
 function push!(
     tp    ::ParticleSoA,
     mesh  ::Mesh,
-    time  ::wpInt,
-    dt    ::wpFloat,
+    time  ::Integer,
+    dt    ::Real,
     solver::Function,
     interp::Function,
     scheme::Function,
@@ -396,10 +409,10 @@ function push!(
 end # function push!
 
 function checkboundary!(
-    pos       ::Vector{wpFloat},
+    pos       ::Vector{T} where {T<:Real},
     alive     ::Bool,
     periodicBC::Tuple{Bool, Bool, Bool},
-    domain    ::Matrix{wpFloat},
+    domain    ::Matrix{T} where {T<:Real},
     )
     for k in 1:length(domain[:,1])
         if pos[k] < domain[k,1]
@@ -464,9 +477,9 @@ end # function kineticenergy
 
 
 function getvperp(
-    R     ::Array{wpFloat, 3},
-    μ     ::Vector{wpFloat},
-    mass  ::Vector{wpFloat},
+    R     ::Array{T, 3} where {T<:Real},
+    μ     ::Vector{T} where {T<:Real},
+    mass  ::Vector{T} where {T<:Real},
     mesh  ::Mesh,
     interp::Function,
     )

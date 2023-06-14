@@ -13,7 +13,6 @@ module Solvers
 # Standard libraries
 using LinearAlgebra:     ×, ⋅, norm
 # Internal modules
-using WorkingPrecision:  wpInt, wpFloat
 using Constants:         c
 using Meshes:            Mesh          
 using Particles:         specieTable
@@ -27,11 +26,11 @@ Solves the Lorentz equation of motion using an arbitrary numerical scheme
 (defined by the argument `scheme`).
 """
 function fullOrbit_interstaticfield(
-    pos         ::Vector{wpFloat},
-    v           ::Vector{wpFloat}, # velocity
-    specie      ::wpInt,
+    pos         ::Vector{T} where {T<:Real},
+    v           ::Vector{T} where {T<:Real}, # velocity
+    specie      ::Integer,
     mesh        ::Mesh,
-    dt          ::wpFloat,
+    dt          ::Real,
     interpolator::Function,
     scheme      ::Function
     )
@@ -53,11 +52,11 @@ function fullOrbit_interstaticfield(
     return statevectorNext[1:3], statevectorNext[4:6]
 end # funcion fullOrbit_interstaticfield
 
-function fullOrbit(pos        ::Vector{wpFloat},
-                   v           ::Vector{wpFloat}, # velocity
-                   specie      ::wpInt,
+function fullOrbit(pos        ::Vector{T} where {T<:Real},
+                   v           ::Vector{T} where {T<:Real}, # velocity
+                   specie      ::Integer,
                    mesh        ::Mesh,
-                   dt          ::wpFloat,
+                   dt          ::Real,
                    interpolator::Function,
                    scheme      ::Function
                    )
@@ -76,11 +75,11 @@ end # function fullOrbit
 
 
 function eomLorentzforce(
-    s::Vector{wpFloat}, # The state vector
-    B::Vector{wpFloat}, # The magnetic field
-    E::Vector{wpFloat}, # The electric field
-    q::wpFloat,         # Charge
-    m::wpFloat          # Mass
+    s::Vector{T} where {T<:Real}, # The state vector
+    B::Vector{T} where {T<:Real}, # The magnetic field
+    E::Vector{T} where {T<:Real}, # The electric field
+    q::Real,         # Charge
+    m::Real          # Mass
     )
     x = s[1:3] # The position vector
     v = s[4:6] # The velocity vector
@@ -91,9 +90,9 @@ function eomLorentzforce(
 end # function eomLorentzforce
 #|
 function eomLorentzforce(
-    statevector ::Vector{wpFloat}, # The state vector
-    q           ::wpFloat,         # Charge
-    m           ::wpFloat,         # Mass
+    statevector ::Vector{T} where {T<:Real}, # The state vector
+    q           ::Real,         # Charge
+    m           ::Real,         # Mass
     mesh        ::Mesh,            # The mesh containing the magnetic field
     interpolator::Function         # Interpolation function used for evaluating
                                    #   the field at the stavector-location
@@ -114,12 +113,12 @@ end # function eomLorentzforce
 
 
 function fieldtracingforward(
-    statevector ::Vector{wpFloat}, # Should be just position
-    vectorfield ::Array{wpFloat, 4},
+    statevector ::Vector{T} where {T<:Real}, # Should be just position
+    vectorfield ::Array{T, 4} where {T<:Real},
     interpolator::Function,
-    xx          ::Vector{wpFloat},
-    yy          ::Vector{wpFloat},
-    zz          ::Vector{wpFloat}
+    xx          ::Vector{T} where {T<:Real},
+    yy          ::Vector{T} where {T<:Real},
+    zz          ::Vector{T} where {T<:Real}
     )
     interpfield, _ = gridinterp(vectorfield, interpolator, statevector,
                                 xx, yy, zz)
@@ -130,12 +129,12 @@ function fieldtracingforward(
 end # function fieldtracing
 
 function fieldtracingbackward(
-    statevector ::Vector{wpFloat}, # Should be just position
-    vectorfield ::Array{wpFloat, 4},
+    statevector ::Vector{T} where {T<:Real}, # Should be just position
+    vectorfield ::Array{T, 4} where {T<:Real},
     interpolator::Function,
-    xx          ::Vector{wpFloat},
-    yy          ::Vector{wpFloat},
-    zz          ::Vector{wpFloat}
+    xx          ::Vector{T} where {T<:Real},
+    yy          ::Vector{T} where {T<:Real},
+    zz          ::Vector{T} where {T<:Real}
     )
     interpfield, _ = gridinterp(vectorfield, interpolator, statevector,
                                 xx, yy, zz)
@@ -146,11 +145,11 @@ function fieldtracingbackward(
 end # function fieldtracing
     
 
-function relFullOrbitExplLeapFrog(pos         ::Vector{wpFloat},
-                                  vel         ::Vector{wpFloat}, 
-                                  specie      ::wpInt,
+function relFullOrbitExplLeapFrog(pos         ::Vector{T} where {T<:Real},
+                                  vel         ::Vector{T} where {T<:Real}, 
+                                  specie      ::Integer,
                                   mesh        ::Mesh,
-                                  dt          ::wpFloat,
+                                  dt          ::Real,
                                   interpolator::Function,
                                   scheme      ::Function
                                   )
@@ -183,11 +182,11 @@ function relFullOrbitExplLeapFrog(pos         ::Vector{wpFloat},
 end # function relFullOrbitExpLeapFrog
 
 
-function GCA(pos         ::Vector{wpFloat},
-             vel         ::Vector{wpFloat},
-             specie      ::wpInt,
+function GCA(pos         ::Vector{T} where {T<:Real},
+             vel         ::Vector{T} where {T<:Real},
+             specie      ::Integer,
              mesh        ::Mesh,
-             dt          ::wpFloat,
+             dt          ::Real,
              interpolator::Function,
              scheme      ::Function
              )
@@ -242,12 +241,12 @@ function GCA(pos         ::Vector{wpFloat},
 end # function GCA
 
 function GCA(
-    pos         ::Vector{wpFloat},
-    vel         ::wpFloat,
-    μ           ::wpFloat,
-    specie      ::wpInt,
+    pos         ::Vector{T} where {T<:Real},
+    vel         ::Real,
+    μ           ::Real,
+    specie      ::Integer,
     mesh        ::Mesh,
-    dt          ::wpFloat,
+    dt          ::Real,
     interpolator::Function,
     scheme      ::Function
     )
@@ -266,10 +265,10 @@ function GCA(
 end # function GCA
 
 function eomGCA(
-    statevector ::Vector{wpFloat},
-    q           ::wpFloat,
-    m           ::wpFloat,
-    μ           ::wpFloat,
+    statevector ::Vector{T} where {T<:Real},
+    q           ::Real,
+    m           ::Real,
+    μ           ::Real,
     mesh        ::Mesh,
     interpolator::Function
     )

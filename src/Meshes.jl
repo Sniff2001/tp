@@ -16,7 +16,6 @@ using Random:           MersenneTwister
 
 using Bifrost
 
-using WorkingPrecision: wpFloat, wpInt
 using Schemes:          derivate4thOrder, derivateCentral, ∇, derivateUpwind
 using Utilities:        norm4
 using Constants
@@ -32,27 +31,27 @@ export amplifyEfield! # Amplifies the elctric field of the mesh by a factor
 # Structs     #
 #-------------#-----------------------------------------------------------------
 struct Mesh
-    bField ::Array{wpFloat,4} # The magnetic field
-    eField ::Array{wpFloat,4} # The eletric field
-    ∇B     ::Array{wpFloat,4} # The gradient of the magnetic field
-    ∇b̂     ::Array{wpFloat,5} # The gradient of the magnetic field
-    ∇ExB   ::Array{wpFloat,5} # The gradient of the magnetic field
-    xCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points
-    yCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points
-    zCoords::Vector{wpFloat} # The cartesian x-coordinates of the grid points
-    domain ::Matrix{wpFloat} # Contains the extent of the numerical domain
-    numdims::wpInt
+    bField ::Array{T, 4} where {T<:Real} # The magnetic field
+    eField ::Array{T, 4} where {T<:Real} # The eletric field
+    ∇B     ::Array{T, 4} where {T<:Real} # The gradient of the magnetic field
+    ∇b̂     ::Array{T, 5} where {T<:Real} # The gradient of the magnetic field
+    ∇ExB   ::Array{T, 5} where {T<:Real} # The gradient of the magnetic field
+    xCoords::Vector{T} where {T<:Real} # The cartesian x-coordinates of the grid points
+    yCoords::Vector{T} where {T<:Real} # The cartesian x-coordinates of the grid points
+    zCoords::Vector{T} where {T<:Real} # The cartesian x-coordinates of the grid points
+    domain ::Matrix{T} where {T<:Real} # Contains the extent of the numerical domain
+    numdims::Integer
 
     # Constructors
     #--------------------------------------------------------------------------
-    function Mesh(bField ::Array{wpFloat, 4},
-                  eField ::Array{wpFloat, 4},
-                  ∇B     ::Array{wpFloat, 4},
-                  ∇b̂     ::Array{wpFloat, 5},
-                  ∇ExB   ::Array{wpFloat, 5},
-                  xCoords::Vector{wpFloat},
-                  yCoords::Vector{wpFloat},
-                  zCoords::Vector{wpFloat}
+    function Mesh(bField ::Array{T, 4} where {T<:Real},
+                  eField ::Array{T, 4} where {T<:Real},
+                  ∇B     ::Array{T, 4} where {T<:Real},
+                  ∇b̂     ::Array{T, 5} where {T<:Real},
+                  ∇ExB   ::Array{T, 5} where {T<:Real},
+                  xCoords::Vector{T} where {T<:Real},
+                  yCoords::Vector{T} where {T<:Real},
+                  zCoords::Vector{T} where {T<:Real}
                   )
         domain = [xCoords[1] xCoords[end]
                   yCoords[1] yCoords[end]
@@ -63,11 +62,11 @@ struct Mesh
                    domain, numdims)
     end # constructor
 
-    function Mesh(bField ::Array{wpFloat, 4},
-                  eField ::Array{wpFloat, 4},
-                  xCoords::Vector{wpFloat},
-                  yCoords::Vector{wpFloat},
-                  zCoords::Vector{wpFloat}
+    function Mesh(bField ::Array{T, 4} where {T<:Real},
+                  eField ::Array{T, 4} where {T<:Real},
+                  xCoords::Vector{T} where {T<:Real},
+                  yCoords::Vector{T} where {T<:Real},
+                  zCoords::Vector{T} where {T<:Real}
                   )
         domain = [xCoords[1] xCoords[length(xCoords)]
                   yCoords[1] yCoords[length(yCoords)]
@@ -84,8 +83,8 @@ struct Mesh
                    domain, numdims)
     end # constructor
 
-    function Mesh(bField ::Array{wpFloat, 4},
-                  eField ::Array{wpFloat, 4}
+    function Mesh(bField ::Array{T, 4} where {T<:Real},
+                  eField ::Array{T, 4} where {T<:Real}
                   )
         xCoords = collect(LinRange(0,1, size(bField)[2]))
         yCoords = collect(LinRange(0,1, size(bField)[3]))
@@ -107,8 +106,8 @@ struct Mesh
                    domain, numdims)
     end # constructor
 
-    function Mesh(bField ::Array{wpFloat, 3},
-                  eField ::Array{wpFloat, 3}
+    function Mesh(bField ::Array{T, 3} where {T<:Real},
+                  eField ::Array{T, 3} where {T<:Real}
                   )
         xCoords = collect(LinRange(0,1, size(bField)[2]))
         yCoords = collect(LinRange(0,1, size(bField)[3]))
@@ -124,8 +123,8 @@ struct Mesh
         return new(bField, eField, ∇B, xCoords, yCoords, numdims)
     end # constructor 
 
-    function Mesh(bField ::Array{wpFloat, 2},
-                  eField ::Array{wpFloat, 2}
+    function Mesh(bField ::Array{T, 2} where {T<:Real},
+                  eField ::Array{T, 2} where {T<:Real}
                   )
         xCoords = LinRange(0,1, size(bField)[2])
         dx = xCoords[2] - xCoords[1]
@@ -194,6 +193,7 @@ struct Mesh
         #-----------------------------------------------------------------------
         # Allocate memory for simple variables
         meshsize = (br_mesh.mx, br_mesh.my, br_mesh.mz)
+        wp_snap = Float32
 
         # Density
         ρ  = br_snap[:,:,:,1]
@@ -230,8 +230,8 @@ struct Mesh
         # params["u_b"] scales magnetic field from model/code-units to CGS units. 
         # cgs2SI_u scales velocity from CGS-units to SI-units
         # cgs2SI_b scales magnetic field from CGS-units to SI-units
-        code2cgs_u = wpFloat(br_params["u_u"])
-        code2cgs_B = wpFloat(br_params["u_B"])
+        code2cgs_u = wp_snap(br_params["u_u"])
+        code2cgs_B = wp_snap(br_params["u_B"])
 
         ux_cgs = code2cgs_u * br_xup(px, pbc_x) ./ ρ
         uy_cgs = code2cgs_u * br_yup(py, pbc_y) ./ ρ
@@ -251,7 +251,7 @@ struct Mesh
         
         #-----------------------------------------------------------------------
         # Compute the electric field and current density
-        eField  = zeros(wpFloat, 3, meshsize...)
+        eField  = zeros(wp_snap, 3, meshsize...)
         calcEfield = true
         resistiveMHD = true
 
@@ -275,7 +275,7 @@ struct Mesh
         end
 
         # Bring magnetic field to cell centres
-        bField  = zeros(wpFloat, 3, meshsize...)
+        bField  = zeros(wp_snap, 3, meshsize...)
         bField[1,:,:,:] = br_xup(bx_SI, pbc_x)
         bField[2,:,:,:] = br_xup(by_SI, pbc_y)
         bField[3,:,:,:] = br_xup(bz_SI, pbc_z)
@@ -290,7 +290,7 @@ struct Mesh
         if calcEfield
             # This allocation is not needed if cross() allows components and
             # not only the vectors.
-            bulkvel = zeros(wpFloat, 3, meshsize...)
+            bulkvel = zeros(wp_snap, 3, meshsize...)
             bulkvel[1,:,:,:] = ux_SI
             bulkvel[2,:,:,:] = uy_SI
             bulkvel[3,:,:,:] = uz_SI
@@ -298,7 +298,7 @@ struct Mesh
                 # Calculate current density
                 if (aux_avail[5] > 0) & (aux_avail[6] > 0) & (aux_avail[7] > 0)
                     # Current density available in aux-variables
-                    J = zeros(wpFLoat, 3, meshsize...)
+                    J = zeros(wp_snap, 3, meshsize...)
                     J[1,:,:,:] = br_aux[:,:,:,aux_avail[5]]
                     J[2,:,:,:] = br_aux[:,:,:,aux_avail[6]]
                     J[3,:,:,:] = br_aux[:,:,:,aux_avail[7]]
@@ -341,10 +341,10 @@ end # Struc
 #-------------------#
 # Utility functions #
 #-------------------------------------------------------------------------------
-function compute∇B(bField ::Array{wpFloat, 4},
-                   xCoords::Vector{wpFloat},
-                   yCoords::Vector{wpFloat},
-                   zCoords::Vector{wpFloat}
+function compute∇B(bField ::Array{T, 4} where {T<:Real},
+                   xCoords::Vector{T} where {T<:Real},
+                   yCoords::Vector{T} where {T<:Real},
+                   zCoords::Vector{T} where {T<:Real}
                    )
     dx = xCoords[2] - xCoords[1]
     dy = yCoords[2] - yCoords[1]
@@ -354,19 +354,20 @@ function compute∇B(bField ::Array{wpFloat, 4},
 end # function compute∇B
 
 
-function compute∇s(bField ::Array{wpFloat, 4},
-                   eField ::Array{wpFloat, 4},
-                   xCoords::Vector{wpFloat},
-                   yCoords::Vector{wpFloat},
-                   zCoords::Vector{wpFloat}
+function compute∇s(bField ::Array{T, 4} where {T<:Real},
+                   eField ::Array{T, 4} where {T<:Real},
+                   xCoords::Vector{T} where {T<:Real},
+                   yCoords::Vector{T} where {T<:Real},
+                   zCoords::Vector{T} where {T<:Real}
                    )
+    wfp = typeof(bField[1])
     _, nx, ny, nz = size(bField)
     dx = xCoords[2] - xCoords[1]
     dy = yCoords[2] - yCoords[1]
     dz = zCoords[2] - zCoords[1]
     BB = norm4(bField)
-    b̂ = zeros(wpFloat, 3, nx, ny, nz)
-    ExBdrift = zeros(wpFloat, 3, nx, ny, nz)
+    b̂ = zeros(wfp, 3, nx, ny, nz)
+    ExBdrift = zeros(wfp, 3, nx, ny, nz)
     for i = 1:nx
         for j= 1:ny
             for k = 1:nz
@@ -384,17 +385,18 @@ function compute∇s(bField ::Array{wpFloat, 4},
     return ∇B, ∇b̂, ∇ExBdrift
 end # function compute∇s
 #|
-function compute∇s(bField ::Array{wpFloat, 4},
-                   eField ::Array{wpFloat, 4},
-                   xCoords::Vector{wpFloat},
-                   yCoords::Vector{wpFloat},
-                   zCoords::Vector{wpFloat},
+function compute∇s(bField ::Array{T, 4} where {T<:Real},
+                   eField ::Array{T, 4} where {T<:Real},
+                   xCoords::Vector{T} where {T<:Real},
+                   yCoords::Vector{T} where {T<:Real},
+                   zCoords::Vector{T} where {T<:Real},
                    scheme ::Function
                    )
+    wfp = typeof(bField[1])
     _, nx, ny, nz = size(bField)
     BB = norm4(bField)
-    b̂ = zeros(wpFloat, 3, nx, ny, nz)
-    ExBdrift = zeros(wpFloat, 3, nx, ny, nz)
+    b̂ = zeros(wfp, 3, nx, ny, nz)
+    ExBdrift = zeros(wfp, 3, nx, ny, nz)
     for i = 1:nx
         for j= 1:ny
             for k = 1:nz
@@ -415,7 +417,7 @@ end # function compute∇s
 # Mesh set-methods #
 #-------------------------------------------------------------------------------
 function amplifyBfield!(mesh  ::Mesh,
-                        factor::wpFloat)
+                        factor::Real)
     @. mesh.bField *= factor
     mesh.∇B = compute∇B(mesh.bField, 
                         mesh.xCoords,
@@ -425,7 +427,7 @@ end # function amplifyBfield
                    
 
 function amplifyEfield!(mesh  ::Mesh,
-                        factor::wpFloat)
+                        factor::Real)
     @. mesh.eField *= factor
 end # function amplifyEfield
 

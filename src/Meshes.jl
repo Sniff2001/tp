@@ -76,7 +76,6 @@ struct Mesh
                                  xCoords,
                                  yCoords,
                                  zCoords,
-                                 derivateUpwind
                                  )
         return new(bField, eField, ∇B, ∇b̂, ∇ExB,
                    xCoords, yCoords, zCoords, 

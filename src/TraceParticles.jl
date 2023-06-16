@@ -13,6 +13,8 @@ module TraceParticles
 
 using Mmap
 
+using Bifrost
+
 using Patches
 using Meshes
 using Particles
@@ -84,6 +86,7 @@ mutable struct Parameters
     velxbounds::Vector{T} where {T<:Real} 
     velybounds::Vector{T} where {T<:Real} 
     velzbounds::Vector{T} where {T<:Real} 
+    T         ::Real
     seed      ::Integer
     # Boundary conditions
     pbc::Tuple{Bool, Bool, Bool} # (x,y,z) If not periodic boundary conditions,
@@ -133,7 +136,7 @@ mutable struct Parameters
         ny=nothing,
         nz=nothing,
         # Particle-initialisation
-        specie=ones(Int32, npart),
+        specie=ones(wp_part, npart),
         pos_distr::String="uniform",
         vel_distr::String="point",
         # Default value of bounds depend on the mesh which may be given by
@@ -144,6 +147,7 @@ mutable struct Parameters
         velxbounds=zeros(wp_part, 2),
         velybounds=zeros(wp_part, 2),
         velzbounds=zeros(wp_part, 2),
+        T         =nothing,
         seed      =wp_part(0),
         # Periodic boundary conditions
         pbc::Tuple{Bool, Bool, Bool}=(false, false, false),
@@ -199,6 +203,9 @@ mutable struct Parameters
         end
         if poszbounds != nothing
             params.poszbounds = poszbounds
+        end
+        if T != nothing
+            params.T = T
         end
 
         #-----------------------------------------------------------------------
@@ -264,6 +271,10 @@ function tp_checkRequirements(
     if params.bg_input == nothing
         error("Missing paramter: bg_input")
     end
+    if params.npart > length(params.specie)
+        error("Number of particles outnumbers the length of specie-parameter.")
+    end
+
 end # function checkRequirements
     
 
@@ -275,7 +286,7 @@ function tp_init!(
     tp_checkRequirements(params)
 
     # Define variables to avoid magic numbers
-    ndims = 3
+    numdims = 3
 
     println("tp.jl: Initialising experiment...")
     #---------------------------------------------------------------------------
@@ -336,7 +347,7 @@ function tp_init!(
         if !isdefined(params, :poszbounds)
             params.poszbounds = [(mesh.zCoords[1] - mesh.zCoords[end])/2.0]
         end
-        pos = np.ones(params.wp_part, ndims, params.npart)
+        pos = np.ones(params.wp_part, numdims, params.npart)
         # If particles are given by coordinates
         if (length(params.posxbounds) ==
             length(params.posybounds) ==
@@ -359,7 +370,55 @@ function tp_init!(
 
     # Velocities
     if params.vel_distr == "mb"
-       error("Feature not implemented: Maxwell-Boltzmann distributed velocities.")
+        # Get temperature 
+        if params.bg_input == "br"
+            vel = ones(numdims, params.npart)
+            br_temp = dropdims(br_load_auxvariable(params.br_expname,
+                                          [params.br_isnap],
+                                          params.br_expdir,
+                                          "tg",
+                                          params.wp_snap
+                                                   ),
+                               dims=numdims + 1
+                               )
+            for i = 1:params.npart
+                # Interpolate the temperature at the position of the particle
+                x⃗ = pos[:,i]
+                t, _ = gridinterp(br_temp,
+                               methodmap[params.interp],
+                               x⃗,
+                               mesh.xCoords,
+                               mesh.yCoords,
+                               mesh.zCoords,
+                               )
+
+                # Standard deviation of velocity
+                σ = √(Constants.k_B*t/specieTable[params.specie[i], 1])
+                # Expectance value of particle velocity components is zero
+                μ = 0.0
+                # Draw velocity components from normal-distribution
+                vel[:,i] = randn(μ, σ, (numdims))
+            end
+        else
+            error(string("\"mb\" velocity distribution only available with ",
+                         "Bifrost background. Use \"mb-onetemp\" to use one ",
+                         "temperature for all particles"
+                         )
+                  )
+        end
+    elseif params.vel_distr == "mb-onetemp"
+        if !isdefined(params, :T)
+            error("Parameter not defined: T")
+        end
+        vel = ones(numdims, params.npart)
+        for i = 1:params.npart
+            # Standard deviation of velocity
+            σ = √(Constants.k_B*params.T/specieTable[params.specie[i], 1])
+            # Expectance value of particle velocity components is zero
+            μ = 0.0
+            # Draw velocity components from normal-distribution
+            vel[:,i] = randn(μ, σ, (numdims))
+        end
     elseif params.vel_distr == "uniform"
         vel = Utilities.inituniform(params.npart,
                                     params.velxbounds,
@@ -369,7 +428,7 @@ function tp_init!(
                                     params.seed
                                     )
     elseif params.vel_distr == "point"
-        vel = ones(params.wp_part, ndims, params.npart)
+        vel = ones(params.wp_part, numdims, params.npart)
         if (length(params.velxbounds) ==
             length(params.velybounds) ==
             length(params.velzbounds) == params.npart)
@@ -377,7 +436,7 @@ function tp_init!(
             vel[2,:] = params.velybounds
             vel[3,:] = params.velzbounds
         else
-            vel = ones(ndims, params.npart)
+            vel = ones(numdims, params.npart)
             vel[2,:] *= params.velybounds[1]
             vel[3,:] *= params.velzbounds[1]
         end
@@ -407,7 +466,7 @@ function tp_init!(
                                 params.nsteps)
     # GCA
     elseif params.solver == "GCA"
-        vparal = zeros(params.wp_part, ndims, params.npart)
+        vparal = zeros(params.wp_part, numdims, params.npart)
         magneticMoment = zeros(params.wp_part, params.npart)
         for i = 1:params.npart
             (B⃗, E⃗), _ = gridinterp(mesh,
@@ -463,7 +522,7 @@ function tp_init(
     tp_filename::String,
     )
     #
-    ndims = 3
+    numdims = 3
     #
     println("tp.jl: Initialising experiment...")
 
@@ -471,8 +530,8 @@ function tp_init(
     # Open tp-file
     #
     f = open(tp_filename)
-    pos = zeros(params.wp_part, ndims, params.npart, params.nsteps)
-    vel = zeros(params.wp_part, ndims, params.npart, params.nsteps)
+    pos = zeros(params.wp_part, numdims, params.npart, params.nsteps)
+    vel = zeros(params.wp_part, numdims, params.npart, params.nsteps)
     pos[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
     pos[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
     pos[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
@@ -601,7 +660,7 @@ function tp_save(
     end
 
     # To avoid magic numbers
-    ndims = 3
+    numdims = 3
 
     println("tp.jl: Saving experiment...")
     #

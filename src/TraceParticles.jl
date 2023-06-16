@@ -731,19 +731,17 @@ function tp_save(
     #
     # Write parameters
     #
-    paramsstring = "using tp\nparams = Parameters(\n"
+    paramsstring = "using TraceParticles\nparams = Parameters(\n"
     for p in fieldnames(Parameters)
-        if p != :methodmap
-            if isdefined(exp.params, p)
-                if typeof(getfield(exp.params, p)) == String
-                    value = "\"$(getfield(exp.params, p))\""
-                else
-                    value = "$(getfield(exp.params, p))"
-                end
-                spaces = " "^(11 - length("$p"))
-                paramsstring = string(paramsstring,
-                                      "\t$p", spaces, "= $value,\n")
+        if isdefined(exp.params, p)
+            if typeof(getfield(exp.params, p)) == String
+                value = "\"$(getfield(exp.params, p))\""
+            else
+                value = "$(getfield(exp.params, p))"
             end
+            spaces = " "^(11 - length("$p"))
+            paramsstring = string(paramsstring,
+                                  "\t$p", spaces, "= $value,\n")
         end
     end
     paramsstring = string(paramsstring, ")")
@@ -759,8 +757,8 @@ end # function tp_saveExp
 function tp_load(
     params ::Parameters,
     ;
-    expdir ::String,
-    expname::String,
+    expdir ::String=params.br_expdir,
+    expname::String=params.br_expname,
     )
     
     basename = string(expdir, "/", expname)

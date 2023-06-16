@@ -126,8 +126,9 @@ end # function streamplotslice
 function pcolormesh_xz!(
     ax     ::plt.PyCall.PyObject,
     A      ::Matrix{T} where {T<:Real},
-    mesh   ::Mesh,
-    yflip  ::Bool=False,
+    mesh   ::Mesh
+    ;
+    yflip  ::Bool=false,
     cmlabel::String="",
     title  ::String=""
     )
@@ -152,8 +153,9 @@ end # function pcolormesh_xz!
 function pcolormesh_xy!(
     ax     ::plt.PyCall.PyObject,
     A      ::Matrix{T} where {T<:Real},
-    mesh   ::Mesh,
-    yflip  ::Bool=False,
+    mesh   ::Mesh
+    ;
+    yflip  ::Bool=false,
     cmlabel::String="",
     title  ::String=""
     )
@@ -178,8 +180,9 @@ end # function pcolormesh_xy!
 function pcolormesh_yz!(
     ax     ::plt.PyCall.PyObject,
     A      ::Matrix{T} where {T<:Real},
-    mesh   ::Mesh,
-    yflip  ::Bool=False,
+    mesh   ::Mesh
+    ;
+    yflip  ::Bool=false,
     cmlabel::String="",
     title  ::String=""
     )

@@ -179,7 +179,7 @@ mutable struct Parameters
             params.nz = Int32(length(z))
             params.bx = bx
             params.by = by
-            params.ez = bz
+            params.bz = bz
             params.ey = ex
             params.ex = ey
             params.ez = ez
@@ -244,7 +244,7 @@ struct Experiment
 end
 
 
-function tp_checkRequirements(
+function tp_checkrequirements(
     params::Parameters
     )
     if params.npart == nothing
@@ -260,11 +260,16 @@ function tp_checkRequirements(
     elseif params.interp == nothing
         error("Missing parameter: interp")
     end
-    if all(i -> i != nothing, (params.br_expname,
-                               params.br_expdir,
-                               params.br_isnap
-                               ))
-    elseif all(i -> i != nothing, (x, y, z, bx, by, bz, ex, ey, ez))
+    if all(i -> isdefined(params, i), (:br_expname,
+                                       :br_expdir,
+                                       :br_isnap
+                                       )
+           )
+    elseif all(i -> isdefined(params, i), (:x, :y, :z,
+                                           :bx, :by, :bz,
+                                           :ex, :ey, :ez
+                                           )
+               )
     else
         error("Missing parameter(s): mesh or/and EM-field")
     end
@@ -283,7 +288,7 @@ function tp_init!(
     )
     # Check whether the required parameters are present. Since the struct is
     # mutable, it may have changed since constrcution.
-    tp_checkRequirements(params)
+    tp_checkrequirements(params)
 
     # Define variables to avoid magic numbers
     numdims = 3

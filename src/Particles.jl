@@ -92,7 +92,8 @@ mutable struct ParticleSoA <: TraceParticle
                                                  # (e.g. electron, proton)
         ;
         alive  ::Vector{Bool}=ones(Bool, size(pos)[2]),
-        weight ::Vector{T} where {T<:Real}=ones(wfp, size(pos)[2])
+        weight ::Vector{T} where {T<:Real}=ones(typeof(pos[1]),
+                                                size(pos)[2])
         )
         return new(pos, vel, species, alive, weight)
     end # constructor 

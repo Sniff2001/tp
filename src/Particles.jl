@@ -315,6 +315,7 @@ function reset!(particles::ParticleSoA)
     n = length(particles.pos[1,1,:])
     particles.pos[:, :, 2:n] .= 0.0
     particles.vel[:, :, 2:n] .= 0.0
+    particles.alive .= true
 end #function reset!
 
 
@@ -356,24 +357,23 @@ function push!(
     periodicBC::Tuple{Bool, Bool, Bool},
     )
     for j in eachindex(tp.alive)
-        if tp.alive[j] == false
-            continue
+        if tp.alive[j]
+            pos = tp.R[:,j,time]
+            vel = tp.vparal[j,time]
+            pos, vel = solver(
+                pos,
+                vel,
+                tp.μ[j],
+                tp.species[j],
+                mesh,
+                dt,
+                interp,
+                scheme,
+            )
+            checkboundary!(pos, tp.alive, j, periodicBC, mesh.domain, time)
+            tp.R[:,j,time+1] = pos
+            tp.vparal[j,time+1] = vel
         end
-        pos = tp.R[:,j,time]
-        vel = tp.vparal[j,time]
-        pos, vel = solver(
-            pos,
-            vel,
-            tp.μ[j],
-            tp.species[j],
-            mesh,
-            dt,
-            interp,
-            scheme,
-        )
-        checkboundary!(pos, tp.alive[j], periodicBC, mesh.domain)
-        tp.R[:,j,time+1] = pos
-        tp.vparal[j,time+1] = vel
     end # loop over particles
 end # function push!
 #|
@@ -388,45 +388,46 @@ function push!(
     periodicBC::Tuple{Bool, Bool, Bool},
     )
     for j in eachindex(tp.alive)
-        if tp.alive[j] == false
-            continue
+        if tp.alive[j]
+            pos = tp.pos[:,j,time]
+            vel = tp.vel[:,j,time]
+            pos, vel = solver(
+                pos,
+                vel,
+                tp.species[j],
+                mesh,
+                dt,
+                interp,
+                scheme,
+            )
+            checkboundary!(pos, tp.alive, j, periodicBC, mesh.domain, time)
+            tp.pos[:,j,time+1] = pos
+            tp.vel[:,j,time+1] = vel
         end
-        pos = tp.pos[:,j,time]
-        vel = tp.vel[:,j,time]
-        pos, vel = solver(
-            pos,
-            vel,
-            tp.species[j],
-            mesh,
-            dt,
-            interp,
-            scheme,
-        )
-        checkboundary!(pos, tp.alive[j], periodicBC, mesh.domain)
-        tp.pos[:,j,time+1] = pos
-        tp.vel[:,j,time+1] = vel
     end # loop over particles
 end # function push!
 
 function checkboundary!(
     pos       ::Vector{T} where {T<:Real},
-    alive     ::Bool,
+    alive     ::Vector{Bool},
+    j         ::Integer,
     periodicBC::Tuple{Bool, Bool, Bool},
     domain    ::Matrix{T} where {T<:Real},
+    time      ::Integer
     )
     for k in 1:length(domain[:,1])
         if pos[k] < domain[k,1]
             if periodicBC[k] == true
                 pos[k] = domain[k, 2] + (pos[k] - domain[k, 1])
             else
-                alive = false # kill particle
+                alive[j] = false # kill particle
                 break
             end
         elseif pos[k] > domain[k, 2]
             if periodicBC[k] == true
                 pos[k] = domain[k, 1] + (pos[k] - domain[k, 2])
             else
-                alive = false # kill particle
+                alive[j] = false # kill particle
                 break
             end # if particle alive
         end # if particle outside domain

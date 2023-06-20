@@ -30,6 +30,9 @@ export tp_init!
 export tp_run!
 export tp_save
 export tp_load
+export tp_loadtp
+export tp_loadmesh
+export tp_loadbg
 
 
 methodmap = Dict(
@@ -204,6 +207,15 @@ mutable struct Parameters
         if poszbounds != nothing
             params.poszbounds = poszbounds
         end
+        if nx != nothing
+            params.nx = nx
+        end
+        if ny != nothing
+            params.ny = ny
+        end
+        if nz != nothing
+            params.nz = nz
+        end
         if T != nothing
             params.T = T
         end
@@ -294,6 +306,114 @@ function tp_init!(
     numdims = 3
 
     println("tp.jl: Initialising experiment...")
+
+function tp_initfromfile(
+    params::Parameters,
+    mesh_filename::String,
+    bg_filename::String,
+    tp_filename::String,
+    )
+    #
+    println("tp.jl: Initialising experiment from file...")
+    #
+    # Open tp-file
+    #
+    pos, vel = tp_loadtp(params, tp_filename)
+    #
+    # Open mesh-file
+    #
+    x, y, z = tp_loadmesh(params, mesh_filename)
+    #
+    # Open bg-file
+    #
+    bField, eField, ∇B, ∇b̂, ∇ExB = tp_loadbg(params, bg_filename) 
+    #
+    # Create Mesh, ParticleSoA, Patch and Experiment
+    #
+    mesh = Mesh(bField, eField, ∇B, ∇b̂, ∇ExB, x, y, z)
+    particles = ParticleSoA(pos, vel, params.specie)
+    patch = Patch(mesh,
+                  particles,
+                  methodmap[params.solver],
+                  methodmap[params.scheme],
+                  methodmap[params.interp],
+                  params.dt,
+                  params.nsteps,
+                  params.npart,
+                  params.pbc
+                  )
+    exp = Experiment(params, patch);
+    #
+    return exp, params
+end # function tp_init
+#|
+
+
+function tp_loadtp(
+    params::Parameters,
+    filename::String
+    )
+    numdims = 3
+    f = open(filename)
+    pos = zeros(params.wp_part, numdims, params.npart, params.nsteps)
+    vel = zeros(params.wp_part, numdims, params.npart, params.nsteps)
+    pos[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
+    pos[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
+    pos[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
+    vel[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
+    vel[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
+    vel[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
+    close(f)
+    return pos, vel
+end
+
+
+function tp_loadmesh(
+    params::Parameters,
+    filename::String
+    )
+    f = open(filename)
+    x = mmap(f, Vector{params.wp_snap}, params.nx)
+    y = mmap(f, Vector{params.wp_snap}, params.ny)
+    z = mmap(f, Vector{params.wp_snap}, params.nz)
+    close(f)
+    return x, y, z
+end
+    
+
+function tp_loadbg(
+    params::Parameters,
+    filename::String
+    )
+    meshsize = (params.nx, params.ny, params.nz)
+    bField = zeros(params.wp_snap, 3, meshsize...)
+    eField = zeros(params.wp_snap, 3, meshsize...)
+    ∇B = zeros(params.wp_snap, 3, meshsize...)
+    ∇b̂ = zeros(params.wp_snap, 3, 3, meshsize...)
+    ∇ExB = zeros(params.wp_snap, 3, 3, meshsize...)
+    f = open(filename)
+    for i = 1:3
+        bField[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
+    end
+    for i = 1:3
+        eField[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
+    end
+    for i = 1:3
+        ∇B[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
+    end
+    for i = 1:3
+        for j = 1:3
+            ∇b̂[i,j,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
+        end
+    end
+    for i = 1:3
+        for j = 1:3
+            ∇ExB[i,j,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
+        end
+    end
+    close(f)
+    return bField, eField, ∇B, ∇b̂, ∇ExB
+end
     #---------------------------------------------------------------------------
     # Construct mesh
     #---------------------------------------------------------------------------
@@ -762,8 +882,8 @@ end # function tp_saveExp
 function tp_load(
     params ::Parameters,
     ;
-    expdir ::String=params.br_expdir,
-    expname::String=params.br_expname,
+    expdir ::String=params.tp_expdir,
+    expname::String=params.tp_expname,
     )
     
     basename = string(expdir, "/", expname)
@@ -786,10 +906,19 @@ function tp_load(
     #
     # Create experiment and 
     #
-    exp = tp_init(params, mesh_filename, bg_filename, tp_filename);
+    exp = tp_initfromfile(params, mesh_filename, bg_filename, tp_filename);
     #
     return exp
 end # function tp_loadExp
+
+
+function tp_set_dt!(
+    exp::Experiment,
+    dt ::Real,
+    )
+    exp.patch.dt = dt
+end
+
 
 #-------------------------------------------------------------------------------
 end # module tp

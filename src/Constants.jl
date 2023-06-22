@@ -23,9 +23,17 @@ m_e      = 9.1093837015e-31 # Kg ........................ Electron mass
 m_p      = 1.67262192369e-27 # Kg ......................... Proton mass
 cSqrdInv = 1/c^2 # s^2 m^-2 ........ Inverse of the light speed squared
 
-# Scaling factors
-cgs2SI_u = 0.01 #...........................cgs-velocity to SI-velocity
-cgs2SI_b = 1e-4 #.....................cgs-magnetic field to SI-velocity
+# CGS-units
+k_B_cgs = 1.380649e-16 # erg/K
+e_cgs_esu = 4.80320427e-10 # Fr
+m_e_cgs = 9.10938370e-28 # g
+
+# Unit conversion
+cgs2SI_u = 1e-2 # cm/s * 1e-2 m/cm = m/s....cgs-velocity to SI-velocity
+cgs2SI_b = 1e-4 # G * 1e-4 T/G = T.............cgs-magnetic field to SI
+cgs2SI_l = 1e-2 # cm * 1e-2 m/cm = m............cgs-length to SI-length
+cgs2SI_e = 1e-6 # g cm s^-2 Fr^-1 * 1e-3 kg/g * 1e-2 m/cm * 1e-1 Fr/C
+                # = kg m /s^2/C................cgs-electric field to SI
 
 
 end # module Constants

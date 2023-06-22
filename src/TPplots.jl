@@ -38,6 +38,7 @@ export pcolormesh_xy!
 export pcolormesh_yz!
 export trajectoryslice!
 export trajectory3D!
+export quiverslice!
 
 #------#
 # Mesh #
@@ -48,6 +49,9 @@ function quiverslice!(
     normal::String, 
     point::Integer,
     field::String="B"
+    ;
+    step=1,
+    yflip=false,
     )
     if field == "B"
         f = mesh.bField
@@ -57,25 +61,28 @@ function quiverslice!(
         println("Error: Invalid field.")
     end
     if normal == "x"
-        ax.quiver(mesh.yCoords,
-               mesh.zCoords,
-               transpose(f[2, point, :, :]),
-               transpose(f[3, point, :, :])
+        ax.quiver(mesh.yCoords[begin:step:end],
+               mesh.zCoords[begin:step:end],
+               transpose(f[2, point, begin:step:end, begin:step:end]),
+               transpose(f[3, point, begin:step:end, begin:step:end])
                )
     elseif normal == "y"
-        ax.quiver(mesh.xCoords,
-               mesh.zCoords,
-               transpose(f[1, :, point, :]),
-               transpose(f[3, :, point, :])  
+        ax.quiver(mesh.xCoords[begin:step:end],
+               mesh.zCoords[begin:step:end],
+               transpose(f[1, begin:step:end, point, begin:step:end]),
+               transpose(f[3, begin:step:end, point, begin:step:end])  
                )
     elseif normal == "z"
-        ax.quiver(mesh.xCoords,
-               mesh.yCoords,
-               transpose(f[1, :, :, point]),
-               transpose(f[2, :, :, point])  
+        ax.quiver(mesh.xCoords[begin:step:end],
+               mesh.yCoords[begin:step:end],
+               transpose(f[1, begin:step:end, begin:step:end, point]),
+               transpose(f[2, begin:step:end, begin:step:end, point])  
                )
     else
         println("Error: Plane not valid.")
+    end
+    if yflip
+        ax.invert_yaxis()
     end
 end # function quiverslice
 
@@ -148,7 +155,34 @@ function pcolormesh_xz!(
         ax.invert_yaxis()
     end
 end # function pcolormesh_xz!
-
+#|
+function pcolormesh_xz!(
+    ax     ::plt.PyCall.PyObject,
+    A      ::Matrix{T} where {T<:Real},
+    x      ::Vector{T} where {T<:Real},
+    y      ::Vector{T} where {T<:Real},
+    z      ::Vector{T} where {T<:Real},
+    ;
+    yflip  ::Bool=false,
+    cmlabel::String="",
+    title  ::String=""
+    )
+    pfabs = copy(transpose(A))
+    uuu = x' .* ones(length(z))
+    vvv = ones(length(x))' .* z
+    pcm = ax.pcolormesh(uuu, vvv, pfabs,
+                        alpha=1.0,
+                        cmap=plt.get_cmap("plasma"))
+    cb = plt.colorbar(pcm,
+                      label=cmlabel,
+                      ax=ax)
+    ax.set_xlabel("x")
+    ax.set_ylabel("z")
+    ax.set_title(title)
+    if yflip
+        ax.invert_yaxis()
+    end
+end # pcolormesh_xz!
 
 function pcolormesh_xy!(
     ax     ::plt.PyCall.PyObject,

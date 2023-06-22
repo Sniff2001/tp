@@ -12,6 +12,7 @@
 module TraceParticles
 
 using Mmap
+using LinearAlgebra
 
 using Bifrost
 
@@ -26,13 +27,21 @@ using Constants
 
 export Parameters
 export Experiment
+# Init-functions
 export tp_init!
-export tp_run!
+export tp_reinit_particles!
+# Save/load functions
 export tp_save
 export tp_load
 export tp_loadtp
 export tp_loadmesh
 export tp_loadbg
+# Run functions
+export tp_run!
+# Set-functions
+export tp_set_dt!
+export tp_set_nsteps!
+export tp_reset!
 
 
 methodmap = Dict(
@@ -42,10 +51,13 @@ methodmap = Dict(
     "GCA"            => Solvers.GCA,
     "RK4"            => Schemes.rk4,
     "trilinear"      => Interpolations_tp.trilinear,
+    "trilinear-GCA"  => Interpolations_tp.trilinearGCA,
     "bilinear_xz"    => Interpolations_tp.bilinear_xz,
 )
 
-
+#--------------------#
+# Struct definitions #
+#--------------------#----------------------------------------------------------
 mutable struct Parameters
     #
     npart ::Integer
@@ -139,7 +151,7 @@ mutable struct Parameters
         ny=nothing,
         nz=nothing,
         # Particle-initialisation
-        specie=ones(wp_part, npart),
+        specie=ones(Integer, npart),
         pos_distr::String="uniform",
         vel_distr::String="point",
         # Default value of bounds depend on the mesh which may be given by
@@ -250,170 +262,42 @@ mutable struct Parameters
 end # struct Parameters
 
 
-struct Experiment
+mutable struct Experiment
     params::Parameters
     patch ::Patch
 end
 
 
-function tp_checkrequirements(
-    params::Parameters
-    )
-    if params.npart == nothing
-        error("Missing parameter: npart")
-    elseif params.nsteps == nothing
-        error("Missing parameter: nsteps")
-    elseif params.dt == nothing
-        error("Missing parameter: dt")
-    elseif params.solver == nothing
-        error("Missing parameter: solver")
-    elseif params.scheme == nothing
-        error("Missing parameter: scheme")
-    elseif params.interp == nothing
-        error("Missing parameter: interp")
-    end
-    if all(i -> isdefined(params, i), (:br_expname,
-                                       :br_expdir,
-                                       :br_isnap
-                                       )
-           )
-    elseif all(i -> isdefined(params, i), (:x, :y, :z,
-                                           :bx, :by, :bz,
-                                           :ex, :ey, :ez
-                                           )
-               )
-    else
-        error("Missing parameter(s): mesh or/and EM-field")
-    end
-    if params.bg_input == nothing
-        error("Missing paramter: bg_input")
-    end
-    if params.npart > length(params.specie)
-        error("Number of particles outnumbers the length of specie-parameter.")
-    end
-
-end # function checkRequirements
-    
-
+#------------------------------#
+# Initialisation of Experiment #
+#------------------------------#------------------------------------------------
 function tp_init!(
     params::Parameters
     )
     # Check whether the required parameters are present. Since the struct is
     # mutable, it may have changed since constrcution.
-    tp_checkrequirements(params)
+    checkrequirements(params)
 
-    # Define variables to avoid magic numbers
-    numdims = 3
 
     println("tp.jl: Initialising experiment...")
 
-function tp_initfromfile(
-    params::Parameters,
-    mesh_filename::String,
-    bg_filename::String,
-    tp_filename::String,
-    )
-    #
-    println("tp.jl: Initialising experiment from file...")
-    #
-    # Open tp-file
-    #
-    pos, vel = tp_loadtp(params, tp_filename)
-    #
-    # Open mesh-file
-    #
-    x, y, z = tp_loadmesh(params, mesh_filename)
-    #
-    # Open bg-file
-    #
-    bField, eField, ∇B, ∇b̂, ∇ExB = tp_loadbg(params, bg_filename) 
-    #
-    # Create Mesh, ParticleSoA, Patch and Experiment
-    #
-    mesh = Mesh(bField, eField, ∇B, ∇b̂, ∇ExB, x, y, z)
-    particles = ParticleSoA(pos, vel, params.specie)
-    patch = Patch(mesh,
-                  particles,
-                  methodmap[params.solver],
-                  methodmap[params.scheme],
-                  methodmap[params.interp],
-                  params.dt,
-                  params.nsteps,
-                  params.npart,
-                  params.pbc
-                  )
-    exp = Experiment(params, patch);
-    #
-    return exp, params
+    #---------------------------------------------------------------------------
+    # Construct Experiment
+    #---------------------------------------------------------------------------
+    mesh = tp_createmesh!(params)
+    particles = tp_createparticles!(params, mesh)
+    patch = tp_createpatch(params, mesh, particles)
+
+    exp = Experiment(params,
+                     patch
+                     )
+    return exp
 end # function tp_init
-#|
 
 
-function tp_loadtp(
-    params::Parameters,
-    filename::String
+function tp_createmesh!(
+    params::Parameters
     )
-    numdims = 3
-    f = open(filename)
-    pos = zeros(params.wp_part, numdims, params.npart, params.nsteps)
-    vel = zeros(params.wp_part, numdims, params.npart, params.nsteps)
-    pos[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    pos[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    pos[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    vel[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    vel[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    vel[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    close(f)
-    return pos, vel
-end
-
-
-function tp_loadmesh(
-    params::Parameters,
-    filename::String
-    )
-    f = open(filename)
-    x = mmap(f, Vector{params.wp_snap}, params.nx)
-    y = mmap(f, Vector{params.wp_snap}, params.ny)
-    z = mmap(f, Vector{params.wp_snap}, params.nz)
-    close(f)
-    return x, y, z
-end
-    
-
-function tp_loadbg(
-    params::Parameters,
-    filename::String
-    )
-    meshsize = (params.nx, params.ny, params.nz)
-    bField = zeros(params.wp_snap, 3, meshsize...)
-    eField = zeros(params.wp_snap, 3, meshsize...)
-    ∇B = zeros(params.wp_snap, 3, meshsize...)
-    ∇b̂ = zeros(params.wp_snap, 3, 3, meshsize...)
-    ∇ExB = zeros(params.wp_snap, 3, 3, meshsize...)
-    f = open(filename)
-    for i = 1:3
-        bField[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-    end
-    for i = 1:3
-        eField[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-    end
-    for i = 1:3
-        ∇B[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-    end
-    for i = 1:3
-        for j = 1:3
-            ∇b̂[i,j,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-        end
-    end
-    for i = 1:3
-        for j = 1:3
-            ∇ExB[i,j,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-        end
-    end
-    close(f)
-    return bField, eField, ∇B, ∇b̂, ∇ExB
-end
     #---------------------------------------------------------------------------
     # Construct mesh
     #---------------------------------------------------------------------------
@@ -422,19 +306,28 @@ end
         params.nx = length(mesh.xCoords)
         params.ny = length(mesh.yCoords)
         params.nz = length(mesh.zCoords)
-    else params.bg.input == "manual"
+    else params.bg_input == "manual"
         meshsize = (params.nx, params.ny, params.nz)
-        bField = zeros(wp, 3, meshsize...)
-        eField = zeros(wp, 3, meshsize...)
-        bField[1,:,:,:] = bx
-        bField[2,:,:,:] = by
-        bField[3,:,:,:] = bz
-        eField[1,:,:,:] = ex
-        eField[2,:,:,:] = ey
-        eField[3,:,:,:] = ez
+        bField = zeros(params.wp_snap, 3, meshsize...)
+        eField = zeros(params.wp_snap, 3, meshsize...)
+        bField[1,:,:,:] = params.bx
+        bField[2,:,:,:] = params.by
+        bField[3,:,:,:] = params.bz
+        eField[1,:,:,:] = params.ex
+        eField[2,:,:,:] = params.ey
+        eField[3,:,:,:] = params.ez
         mesh = Mesh(bField, eField, params.x, params.y, params.z)
     end 
-    
+    return mesh
+end
+
+
+function tp_createparticles!(
+    params::Parameters,
+    mesh  ::Mesh,
+    )
+    # Define variables to avoid magic numbers
+    numdims = 3
     #---------------------------------------------------------------------------
     # Construct particles
     #---------------------------------------------------------------------------
@@ -472,7 +365,7 @@ end
         if !isdefined(params, :poszbounds)
             params.poszbounds = [(mesh.zCoords[1] - mesh.zCoords[end])/2.0]
         end
-        pos = np.ones(params.wp_part, numdims, params.npart)
+        pos = ones(params.wp_part, numdims, params.npart)
         # If particles are given by coordinates
         if (length(params.posxbounds) ==
             length(params.posybounds) ==
@@ -498,6 +391,7 @@ end
         # Get temperature 
         if params.bg_input == "br"
             vel = ones(numdims, params.npart)
+            # Temperature has code-units equal to Kelvin, no need for scaling.
             br_temp = dropdims(br_load_auxvariable(params.br_expname,
                                           [params.br_isnap],
                                           params.br_expdir,
@@ -516,7 +410,6 @@ end
                                mesh.yCoords,
                                mesh.zCoords,
                                )
-
                 # Standard deviation of velocity
                 σ = √(Constants.k_B*t/specieTable[params.specie[i], 1])
                 # Expectance value of particle velocity components is zero
@@ -591,20 +484,20 @@ end
                                 params.nsteps)
     # GCA
     elseif params.solver == "GCA"
-        vparal = zeros(params.wp_part, numdims, params.npart)
+        vparal = zeros(params.wp_part, params.npart)
         magneticMoment = zeros(params.wp_part, params.npart)
         for i = 1:params.npart
             (B⃗, E⃗), _ = gridinterp(mesh,
-                                   params.interp,
+                                   methodmap[params.interp],
                                    pos[:,i]
                                    )
-            B = norm(B⃗)
+            B = Utilities.norm(B⃗)
             b̂ = B⃗/B
-            v = norm(vel[:,i])
-            vparal[:,i] = [vel[:,i] ⋅ b̂]
-            vperp = √(v^2 - vparal[:,i]^2)
+            v = Utilities.norm(vel[:,i])
+            vparal[i] = vel[:,i] ⋅ b̂
+            vperp = √(v^2 - vparal[i]^2)
             mass = specieTable[params.specie[i], 1]
-            magneticMoment[i] = [mass*vperp^2/(2B)]
+            magneticMoment[i] = mass*vperp^2/(2B)
         end
         particles = GCAParticleSoA(pos,
                                    vparal,
@@ -615,7 +508,15 @@ end
     else
         error("Invalid solver-parameter: $params.solver")
     end
-        
+    return particles
+end
+
+
+function tp_createpatch(
+    params   ::Parameters,
+    mesh     ::Mesh,
+    particles::TraceParticle
+    )
     #---------------------------------------------------------------------------
     # Construct Patch
     #---------------------------------------------------------------------------
@@ -629,102 +530,9 @@ end
                   params.npart,
                   params.pbc
                   )
+    return patch
+end
 
-    #---------------------------------------------------------------------------
-    # Construct Experiment
-    #---------------------------------------------------------------------------
-    exp = Experiment(params,
-                     patch
-                     )
-    return exp
-end # function tp_init
-#|
-
-function tp_init(
-    params::Parameters,
-    mesh_filename::String,
-    bg_filename::String,
-    tp_filename::String,
-    )
-    #
-    numdims = 3
-    #
-    println("tp.jl: Initialising experiment...")
-
-    #
-    # Open tp-file
-    #
-    f = open(tp_filename)
-    pos = zeros(params.wp_part, numdims, params.npart, params.nsteps)
-    vel = zeros(params.wp_part, numdims, params.npart, params.nsteps)
-    pos[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    pos[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    pos[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    vel[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    vel[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    vel[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    close(f)
-
-    #
-    # Open mesh-file
-    #
-    f = open(mesh_filename)
-    x = mmap(f, Vector{params.wp_snap}, params.nx)
-    y = mmap(f, Vector{params.wp_snap}, params.ny)
-    z = mmap(f, Vector{params.wp_snap}, params.nz)
-    close(f)
-    
-    #
-    # Open bg-file
-    #
-    meshsize = (params.nx, params.ny, params.nz)
-    bField = zeros(params.wp_snap, 3, meshsize...)
-    eField = zeros(params.wp_snap, 3, meshsize...)
-    ∇B = zeros(params.wp_snap, 3, meshsize...)
-    ∇b̂ = zeros(params.wp_snap, 3, 3, meshsize...)
-    ∇ExB = zeros(params.wp_snap, 3, 3, meshsize...)
-    f = open(bg_filename)
-    for i = 1:3
-        bField[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-    end
-    for i = 1:3
-        eField[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-    end
-    for i = 1:3
-        ∇B[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-    end
-    for i = 1:3
-        for j = 1:3
-            ∇b̂[i,j,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-        end
-    end
-    for i = 1:3
-        for j = 1:3
-            ∇ExB[i,j,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-        end
-    end
-    close(f)
-    
-    #
-    # Create Mesh, ParticleSoA, Patch and Experiment
-    #
-    mesh = Mesh(bField, eField, ∇B, ∇b̂, ∇ExB, x, y, z)
-    particles = ParticleSoA(pos, vel, params.specie)
-    patch = Patch(mesh,
-                  particles,
-                  methodmap[params.solver],
-                  methodmap[params.scheme],
-                  methodmap[params.interp],
-                  params.dt,
-                  params.nsteps,
-                  params.npart,
-                  params.pbc
-                  )
-    exp = Experiment(params, patch);
-    #
-    return exp, params
-end # function tp_init
-#|
 
 function tp_softinit!(
     exp::Experiment
@@ -732,30 +540,18 @@ function tp_softinit!(
 end
 
 
-function tp_run!(
-    exp::Experiment
+function tp_reinit_particles!(
+    exp   ::Experiment,
     )
-    statement = string("tp.jl: Running simulation:\n",
-                       "\tnpart:  $(exp.params.npart)\n",
-                       "\tnsteps: $(exp.params.nsteps)\n",
-                       "\tdt:     $(exp.params.dt)\n",
-                       "\tNumber of iterations: ",
-                       "$(exp.params.npart*exp.params.nsteps)"
-                       )
-    println(statement)
-    run!(exp.patch)
-end # function tp_run
-#|
-
-function tp_run(
-    params::Parameters
-    )
-    exp = tp_init!(params)
-    tp_run!(exp)
-    return exp
-end # function tp_run
+    particles = tp_createparticles!(exp.params, exp.patch.mesh)
+    patch = tp_createpatch(exp.params, exp.patch.mesh, particles)
+    exp.patch = patch
+end
 
 
+#----------------------------------------#
+# Saving and loading Experiment or files #
+#----------------------------------------#--------------------------------------
 function tp_save(
     exp    ::Experiment
     ;
@@ -885,40 +681,210 @@ function tp_load(
     expdir ::String=params.tp_expdir,
     expname::String=params.tp_expname,
     )
-    
+    #
+    println("tp.jl: Loading experiment from file...")
+    # Parse filenames
     basename = string(expdir, "/", expname)
     tp_filename = string(basename, ".tp")
     mesh_filename = string(basename, ".mesh")
     bg_filename = string(basename, ".bg")
-    #params_filename = string(basename, ".jl")
 
     #
-    # Get parameters
+    # Open tp-file
     #
-    #f = open(params_filename)
-    #contents = read(f, String)
-    #commands = Meta.parse("begin $contents end").args
-    #println("upd")
-    #for line in commands
-    #    eval(line)
-    #end
-
+    pos, vel = tp_loadtp(params, tp_filename)
     #
-    # Create experiment and 
+    # Open mesh-file
     #
-    exp = tp_initfromfile(params, mesh_filename, bg_filename, tp_filename);
+    x, y, z = tp_loadmesh(params, mesh_filename)
+    #
+    # Open bg-file
+    #
+    bField, eField, ∇B, ∇b̂, ∇ExB = tp_loadbg(params, bg_filename) 
+    #
+    # Create Mesh, ParticleSoA, Patch and Experiment
+    #
+    mesh = Mesh(bField, eField, ∇B, ∇b̂, ∇ExB, x, y, z)
+    particles = ParticleSoA(pos, vel, params.specie)
+    patch = Patch(mesh,
+                  particles,
+                  methodmap[params.solver],
+                  methodmap[params.scheme],
+                  methodmap[params.interp],
+                  params.dt,
+                  params.nsteps,
+                  params.npart,
+                  params.pbc
+                  )
+    exp = Experiment(params, patch);
     #
     return exp
-end # function tp_loadExp
+end # function tp_load
 
 
+function tp_loadtp(
+    params::Parameters,
+    filename::String
+    )
+    numdims = 3
+    f = open(filename)
+    pos = zeros(params.wp_part, numdims, params.npart, params.nsteps)
+    vel = zeros(params.wp_part, numdims, params.npart, params.nsteps)
+    pos[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
+    pos[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
+    pos[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
+    vel[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
+    vel[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
+    vel[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
+    close(f)
+    return pos, vel
+end
+
+
+function tp_loadmesh(
+    params::Parameters,
+    filename::String
+    )
+    f = open(filename)
+    x = mmap(f, Vector{params.wp_snap}, params.nx)
+    y = mmap(f, Vector{params.wp_snap}, params.ny)
+    z = mmap(f, Vector{params.wp_snap}, params.nz)
+    close(f)
+    return x, y, z
+end
+    
+
+function tp_loadbg(
+    params::Parameters,
+    filename::String
+    )
+    meshsize = (params.nx, params.ny, params.nz)
+    bField = zeros(params.wp_snap, 3, meshsize...)
+    eField = zeros(params.wp_snap, 3, meshsize...)
+    ∇B = zeros(params.wp_snap, 3, meshsize...)
+    ∇b̂ = zeros(params.wp_snap, 3, 3, meshsize...)
+    ∇ExB = zeros(params.wp_snap, 3, 3, meshsize...)
+    f = open(filename)
+    for i = 1:3
+        bField[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
+    end
+    for i = 1:3
+        eField[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
+    end
+    for i = 1:3
+        ∇B[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
+    end
+    for i = 1:3
+        for j = 1:3
+            ∇b̂[i,j,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
+        end
+    end
+    for i = 1:3
+        for j = 1:3
+            ∇ExB[i,j,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
+        end
+    end
+    close(f)
+    return bField, eField, ∇B, ∇b̂, ∇ExB
+end
+
+
+
+#---------------------#
+# Running Experiments #
+#---------------------#---------------------------------------------------------
+function tp_run!(
+    exp::Experiment
+    )
+    statement = string("tp.jl: Running simulation:\n",
+                       "\tnpart:  $(exp.params.npart)\n",
+                       "\tnsteps: $(exp.params.nsteps)\n",
+                       "\tdt:     $(exp.params.dt)\n",
+                       "\tNumber of iterations: ",
+                       "$(exp.params.npart*exp.params.nsteps)"
+                       )
+    println(statement)
+    run!(exp.patch)
+end # function tp_run
+
+
+function tp_run(
+    params::Parameters
+    )
+    exp = tp_init!(params)
+    tp_run!(exp)
+    return exp
+end # function tp_run
+
+
+#-----------------------------------------#
+# Set and/or reset Parameters/Experiments #
+#-----------------------------------------#-------------------------------------
 function tp_set_dt!(
     exp::Experiment,
     dt ::Real,
     )
+    exp.params.dt = dt
     exp.patch.dt = dt
 end
 
+
+function tp_set_nsteps!(
+    exp::Experiment,
+    nsteps::Integer,
+    )
+    exp.params.nsteps = nsteps
+    tp_reinit_particles!(exp)
+end
+
+
+function tp_reset!(
+    exp::Experiment,
+    )
+    revive!(exp.patch.tp)
+    reset!(exp.patch.tp)
+end
+
+
+#-------------------#
+# Utility functions #
+#-------------------#-----------------------------------------------------------
+function checkrequirements(
+    params::Parameters
+    )
+    if params.npart == nothing
+        error("Missing parameter: npart")
+    elseif params.nsteps == nothing
+        error("Missing parameter: nsteps")
+    elseif params.dt == nothing
+        error("Missing parameter: dt")
+    elseif params.solver == nothing
+        error("Missing parameter: solver")
+    elseif params.scheme == nothing
+        error("Missing parameter: scheme")
+    elseif params.interp == nothing
+        error("Missing parameter: interp")
+    end
+    if all(i -> isdefined(params, i), (:br_expname,
+                                       :br_expdir,
+                                       :br_isnap
+                                       )
+           )
+    elseif all(i -> isdefined(params, i), (:x, :y, :z,
+                                           :bx, :by, :bz,
+                                           :ex, :ey, :ez
+                                           )
+               )
+    else
+        error("Missing parameter(s): mesh or/and EM-field")
+    end
+    if params.bg_input == nothing
+        error("Missing paramter: bg_input")
+    end
+    if params.npart > length(params.specie)
+        error("Number of particles outnumbers the length of specie-parameter.")
+    end
+end
 
 #-------------------------------------------------------------------------------
 end # module tp

@@ -282,8 +282,10 @@ function trajectoryslice!(
     ax    ::plt.PyCall.PyObject,
     patch ::Patch,
     normal::String, 
-    linestyle::String,
+    ;
+    linestyle::String="",
     labelling::Bool=false,
+    periodic::Bool=false
     )
     # Set variables depending on slice orientation
     if normal == "x"
@@ -301,11 +303,16 @@ function trajectoryslice!(
     cm = plt.get_cmap(:tab20)
     colorrange = (0:patch.numParticles) ./ patch.numParticles
     for j = 1:patch.numParticles
-        plotperiodictrajectory(ax, pos[:,j,:],
-                               j, domain,
-                               cm, colorrange,
-                               linestyle)
+        if periodic
+            plotperiodictrajectory(ax, pos[:,j,:],
+                                   j, domain,
+                                   cm, colorrange,
+                                   linestyle)
+        else
+            ax.plot(pos[1,j,:], pos[2,j,:])
+        end
     end
+
     # Mark initial positions of particles
     for j = 1:patch.numParticles
         if j == 1
@@ -423,46 +430,114 @@ function plotperiodictrajectory(
     end
 end 
 
-
 #---------#
 # Patches #
 #-------------------------------------------------------------------------------
 function plot(
     patch    ::Patch,
     normal   ::String="z",
+    ;
     point    ::Integer=1,
-    labelling::Bool=false
+    labelling::Bool=false,
+    periodic  ::Bool=false,
+    streamplot::Bool=false,
+    step      ::Integer=1,
+    yflip     ::Bool=false,
+    efield    ::Bool=false,
     )
-
-    pos = getpos(patch.tp)
-
-    fig, axes = plt.subplots(1,1)
-
-    # Make streamplot of magnetic field
-    streamplotslice!(axes, patch.mesh, normal, point)
-    # Make pcolormesh of magnetic field strength
-    pcolormeshslice!(axes, patch.mesh, normal, point)
-    # Plot particle trajectories
-    trajectoryslice!(axes, patch, normal, "-")
-
-    # Set title and labelling
-    if typeof(patch.tp) == ParticleSoA
-        axes.set_title("Full-orbit")
+    #
+    if efield
+        fig, axes = plt.subplots(1,2)
+        ax = axes[1]
+        eax = axes[2]
     else
-        axes.set_title("GCA")
+        fig, ax = plt.subplots(1,1)
     end
-    if labelling
-        axes.legend()
+   
+    plot(ax, patch, normal, point, labelling, "B";
+         periodic=periodic,
+         streamplot=streamplot,
+         step=step,
+         yflip=yflip
+         )
+    if efield
+        plot(eax, patch, normal, point, labelling, "E";
+             periodic=periodic,
+             streamplot=streamplot,
+             step=step,
+             yflip=yflip
+             )
     end
-    setcartesianaxes!(axes, normal)
     # Make energy distribution-plots
     #numbins = 20
     #p1 = plotenergydistr(patch.tp, 1, numbins, "Initial energy")
     #p2 = plotenergydistr(patch.tp, patch.numSteps+1, numbins, "final energy")
     #Plots.plot(p1,p2)#p3,p4)
-    return fig, axes
+    return fig, ax
 end # function plot
 
+
+function plot(
+    ax       ::plt.PyCall.PyObject,
+    patch    ::Patch,
+    normal   ::String="z",
+    point    ::Integer=1,
+    labelling::Bool=false,
+    field    ::String="B",
+    ;
+    periodic  ::Bool=false,
+    streamplot::Bool=false,
+    step      ::Integer=1,
+    yflip     ::Bool=false,
+    )   
+    # Make pcolormesh of magnetic field strength
+    pcolormeshslice!(ax, patch.mesh, normal, point, field)
+    # Make streamplot or quiverplot of magnetic field
+    if streamplot
+        streamplotslice!(ax, patch.mesh, normal, point, field)
+    else
+        quiverslice!(ax, patch.mesh, normal, point, field,
+                     step=step,
+                     yflip=yflip
+                     )
+    end
+    # Plot particle trajectories
+    trajectoryslice!(ax, patch, normal, linestyle="-", periodic=periodic)
+
+    # Set title and labelling
+    if typeof(patch.tp) == ParticleSoA
+        ax.set_title("Full-orbit")
+    else
+        ax.set_title("GCA")
+    end
+    if labelling
+        ax.legend()
+    end
+    setcartesianaxes!(ax, normal)
+    setaxislimits!(ax, patch.mesh.domain, normal)
+end
+
+
+function plot(
+    tp::ParticleSoA,
+    normal::String="z"
+    )
+    _, npart, _ = size(tp.pos)
+    fig, ax = plt.subplots(1, npart)
+    for i = 1:npart
+        if normal == "x"
+            ax[i].plot(tp.pos[2,i,:], tp.pos[3,i,:])
+        elseif normal == "y"
+            ax[i].plot(tp.pos[1,i,:], tp.pos[3,i,:])
+        elseif normal == "z" 
+            ax[i].plot(tp.pos[1,i,:], tp.pos[2,i,:])
+        end
+        ax[i].set_title("Trajectory of particle $i")
+        setcartesianaxes!(ax[i], normal)
+    end
+    return fig, ax
+end
+    
 
 function plotKE(
     patch    ::Patch,
@@ -738,11 +813,13 @@ function plotfieldlines(
 end
 
 
+
+
 #-----------#
 # Utilities #
 #-------------------------------------------------------------------------------
 function setcartesianaxes!(
-    ax::plt.PyCall.PyObject,
+    ax    ::plt.PyCall.PyObject,
     normal::String="z",
     )
     if normal == "x"
@@ -757,6 +834,23 @@ function setcartesianaxes!(
     end
 end # function setcartesianaxes
 
+
+function setaxislimits!(
+    ax    ::plt.PyCall.PyObject,
+    domain::Matrix{T} where {T<:Real},
+    normal::String="z",
+    )
+    if normal == "x"
+        ax.set_xlim([domain[2,1], domain[2,2]])
+        ax.set_ylim([domain[3,1], domain[3,2]])
+    elseif normal == "y"
+        ax.set_xlim([domain[1,1], domain[1,2]])
+        ax.set_ylim([domain[3,1], domain[3,2]])
+    elseif normal == "z"
+        ax.set_xlim([domain[1,1], domain[1,2]])
+        ax.set_ylim([domain[2,1], domain[2,2]])
+    end
+end # function setaxlimits!
 
 #---------------------------------------------------#
 # Messy plotting function hardcoded for RoCMI 2023  #

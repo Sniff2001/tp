@@ -11,6 +11,7 @@
 
 module Patches
 
+
 using Meshes
 using Particles
 using Solvers
@@ -113,7 +114,12 @@ end # mutable struct Patch
 # Methods #
 #---------#---------------------------------------------------------------------
 function run!(patch::Patch)
+    onepercentofsnap = ceil(Int64, patch.numSteps/100)
     for i = 1:patch.numSteps # Over timesteps
+        if i%onepercentofsnap == 0
+            print("Stepping progress: $(i/onepercentofsnap)% \r")
+            flush(stdout)
+        end
         Particles.push!(patch.tp,
                         patch.mesh,
                         i,

@@ -688,7 +688,7 @@ function generatefieldline(
     # Follow field line forward
     for i = 1:stepsforward
         pos = lineforward[:, i]
-        fields, _ = grid(mesh, interpolator, pos)
+        fields, _ = gridinterp(mesh, interpolator, pos)
         bfield, _ = fields
         B = norm(bfield)
         b = bfield/B
@@ -706,7 +706,7 @@ function generatefieldline(
     # Follow field line backward
     for i = 1:stepsbackward
         pos = linebackward[:, i]
-        fields, _ = grid(mesh, interpolator, pos)
+        fields, _ = gridinterp(mesh, interpolator, pos)
         bfield, _ = fields
         B = norm(bfield)
         b = bfield/B
@@ -726,14 +726,22 @@ function generatefieldline(
     for i = 1:stepsforward
         if any(lineforward[:,i] .< mesh.domain[:,1]) |
             any(lineforward[:,i] .> mesh.domain[:,2])
-            lineforward[:, i:end] .= lineforward[:,i-1]
+            if i == 1
+                lineforward[:, i:end] .= lineforward[:,i]
+            else
+                lineforward[:, i:end] .= lineforward[:,i-1]
+            end
             break
         end
     end
     for i = 1:stepsbackward
         if any(linebackward[:,i] .< mesh.domain[:,1]) |
             any(linebackward[:,i] .> mesh.domain[:,2])
-            linebackward[:, i:end] .= linebackward[:,i-1]
+            if i == 1
+                linebackward[:, i:end] .= linebackward[:,i]
+            else
+                linebackward[:, i:end] .= linebackward[:,i-1]
+            end
             break
         end
     end
@@ -744,22 +752,37 @@ function generatefieldline(
 end 
 
 
-function plotfieldlines(mesh, numlines::Integer, stepsize, interpolator, scheme)
+function plotfieldlines(mesh,
+                        numlines::Integer,
+                        stepsize,
+                        interpolator,
+                        scheme;
+                        uniformsampling=false)
     fieldstrength = norm4(mesh.bField)
     maxfieldstrength = maximum(fieldstrength)
     # Create a function which returns the field strength at a given position.
-    B(pos) = grid(fieldstrength,
-                  interpolator,
-                  pos,
-                  mesh.xCoords,
-                  mesh.yCoords,
-                  mesh.zCoords)
+    B(pos) = gridinterp(fieldstrength,
+                        interpolator,
+                        pos,
+                        mesh.xCoords,
+                        mesh.yCoords,
+                        mesh.zCoords)
     # Sample initial position for magnetic field lines based on the field
     # strength 
-    positions, ratio = rejectionsampling(B,
-                                         maxfieldstrength,
-                                         numlines,
-                                         mesh.domain)
+    if uniformsampling
+        # Hardcoded for nullpoint2k-experiment
+        positions = zeros(3, numlines)
+        positions[1,:] .= rand(mesh.xCoords[1], mesh.xCoords[end], numlines)
+        positions[2,:] .= ones(numlines) .* 0.5
+        positions[3,:] .= ones(numlines) .* (
+            (mesh.zCoords[end] - mesh.zCoords[1])/2)
+        display(positions)
+    else
+        positions, ratio = rejectionsampling(B,
+                                             maxfieldstrength,
+                                             numlines,
+                                             mesh.domain)
+    end
     # Assumes the lines are no greater than twice the maximum domain extent.
     maxextent = maximum(mesh.domain[:, 2] .- mesh.domain[:, 1]) 
     numsteps = Integer(2maxextent/stepsize)

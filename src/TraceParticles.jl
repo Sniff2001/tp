@@ -32,6 +32,9 @@ export tp_init!
 export tp_reinit_particles!
 # Save/load functions
 export tp_save
+export tp_savetp
+export tp_savemesh
+export tp_savebg
 export tp_load
 export tp_loadtp
 export tp_loadmesh
@@ -599,56 +602,18 @@ function tp_save(
     #
     # Write particle positions, velocity and life-status
     #
-    # IMPROVEMENT: This method takes a up a lot of memory. Defining a
-    # getArrayForSaving() function in the Particles module could be better.
-    f = open(tp_filename, "w+")
-    write(f, exp.patch.tp.pos[1,:,:])
-    write(f, exp.patch.tp.pos[2,:,:])
-    write(f, exp.patch.tp.pos[3,:,:])
-    write(f, exp.patch.tp.vel[1,:,:])
-    write(f, exp.patch.tp.vel[2,:,:])
-    write(f, exp.patch.tp.vel[3,:,:])
-    close(f)
-    println("tp.jl: Wrote $tp_filename")
-
+    tp_savetp(exp, tp_filename)
+    
     #
     # Write mesh (NB! here I seperate the fields from the mesh)
     #
-    f = open(mesh_filename, "w+")
-    write(f, [exp.patch.mesh.xCoords[:];
-              exp.patch.mesh.yCoords[:];
-              exp.patch.mesh.zCoords[:];
-              ]
-          )
-    close(f)
-    println("tp.jl: Wrote $mesh_filename")
+    tp_savemesh(exp, mesh_filename)
 
     #
     # Write background fields
     #
-    f = open(bg_filename, "w+")
-    write(f, exp.patch.mesh.bField[1,:,:,:])
-    write(f, exp.patch.mesh.bField[2,:,:,:])
-    write(f, exp.patch.mesh.bField[3,:,:,:])
-    write(f, exp.patch.mesh.eField[1,:,:,:])
-    write(f, exp.patch.mesh.eField[2,:,:,:])
-    write(f, exp.patch.mesh.eField[3,:,:,:])
-    write(f, exp.patch.mesh.∇B[1,:,:,:])
-    write(f, exp.patch.mesh.∇B[2,:,:,:])
-    write(f, exp.patch.mesh.∇B[3,:,:,:])
-    for i = 1:3
-        for j = 1:3
-            write(f, exp.patch.mesh.∇b̂[i,j,:,:,:])
-        end
-    end
-    for i = 1:3
-        for j = 1:3
-            write(f, exp.patch.mesh.∇ExB[i,j,:,:,:])
-        end
-    end
-    close(f)
-    println("tp.jl: Wrote $bg_filename")
-
+    tp_savebg(exp, bg_filename)
+    
     #
     # Write parameters
     #
@@ -673,6 +638,68 @@ function tp_save(
 
     #
 end # function tp_saveExp
+
+
+function tp_savetp(
+    exp::Experiment,
+    filename::String,
+    )
+    # IMPROVEMENT: This method takes a up a lot of memory. Defining a
+    # getArrayForSaving() function in the Particles module could be better.
+    f = open(filename, "w+")
+    write(f, exp.patch.tp.pos[1,:,:])
+    write(f, exp.patch.tp.pos[2,:,:])
+    write(f, exp.patch.tp.pos[3,:,:])
+    write(f, exp.patch.tp.vel[1,:,:])
+    write(f, exp.patch.tp.vel[2,:,:])
+    write(f, exp.patch.tp.vel[3,:,:])
+    close(f)
+    println("tp.jl: Wrote $filename")
+end # tp_savetp
+
+
+function tp_savemesh(
+    exp::Experiment,
+    filename::String,
+    )
+    f = open(filename, "w+")
+    write(f, [exp.patch.mesh.xCoords[:];
+              exp.patch.mesh.yCoords[:];
+              exp.patch.mesh.zCoords[:];
+              ]
+          )
+    close(f)
+    println("tp.jl: Wrote $filename")
+end # function tp_savemesh
+
+
+function tp_savebg(
+    exp::Experiment,
+    filename::String,
+    )
+    f = open(filename, "w+")
+    write(f, exp.patch.mesh.bField[1,:,:,:])
+    write(f, exp.patch.mesh.bField[2,:,:,:])
+    write(f, exp.patch.mesh.bField[3,:,:,:])
+    write(f, exp.patch.mesh.eField[1,:,:,:])
+    write(f, exp.patch.mesh.eField[2,:,:,:])
+    write(f, exp.patch.mesh.eField[3,:,:,:])
+    write(f, exp.patch.mesh.∇B[1,:,:,:])
+    write(f, exp.patch.mesh.∇B[2,:,:,:])
+    write(f, exp.patch.mesh.∇B[3,:,:,:])
+    for i = 1:3
+        for j = 1:3
+            write(f, exp.patch.mesh.∇b̂[i,j,:,:,:])
+        end
+    end
+    for i = 1:3
+        for j = 1:3
+            write(f, exp.patch.mesh.∇ExB[i,j,:,:,:])
+        end
+    end
+    close(f)
+    println("tp.jl: Wrote $filename")
+end # function tp_savebg
 
 
 function tp_load(

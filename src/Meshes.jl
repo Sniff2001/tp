@@ -140,6 +140,8 @@ struct Mesh
         expname::String,
         expdir ::String,
         snap   ::Integer,
+        ;
+        SI_units::Bool=true
         )
 
         numdims = 3
@@ -195,23 +197,15 @@ struct Mesh
         wp_snap = Float32
 
         # Density
-        ρ  = br_snap[:,:,:,1]
+        ρ_code  = br_snap[:,:,:,1]
         # Bulk momentum
-        px = br_snap[:,:,:,2]
-        py = br_snap[:,:,:,3]
-        pz = br_snap[:,:,:,4]
+        px_code = br_snap[:,:,:,2]
+        py_code = br_snap[:,:,:,3]
+        pz_code = br_snap[:,:,:,4]
         # Magnetic field
-        bx = br_snap[:,:,:,6]
-        by = br_snap[:,:,:,7]
-        bz = br_snap[:,:,:,8]
-
-        dx = diff(br_mesh.x)
-        dy = diff(br_mesh.y)
-        dz = diff(br_mesh.z)
-
-        domain = [br_mesh.x[1] br_mesh.x[end]
-                  br_mesh.y[1] br_mesh.y[end]
-                  br_mesh.z[1] br_mesh.z[end]]
+        bx_code = br_snap[:,:,:,6]
+        by_code = br_snap[:,:,:,7]
+        bz_code = br_snap[:,:,:,8]
 
         pbc_x = Bool(br_params["periodic_x"])
         pbc_y = Bool(br_params["periodic_y"])
@@ -230,69 +224,82 @@ struct Mesh
         # cgs2SI_u scales velocity from CGS-units to SI-units
         # cgs2SI_b scales magnetic field from CGS-units to SI-units
         code2cgs_u = wp_snap(br_params["u_u"])
-        code2cgs_B = wp_snap(br_params["u_B"])
+        code2cgs_b = wp_snap(br_params["u_B"])
+        code2cgs_l = wp_snap(br_params["u_l"])
+        code2cgs_e = code2cgs_u * code2cgs_b
 
-        ux_cgs = code2cgs_u * br_xup(px, pbc_x) ./ ρ
-        uy_cgs = code2cgs_u * br_yup(py, pbc_y) ./ ρ
-        uz_cgs = code2cgs_u * br_zup(pz, pbc_z) ./ ρ
-        ux_SI = ux_cgs * Constants.cgs2SI_u
-        uy_SI = uy_cgs * Constants.cgs2SI_u
-        uz_SI = uz_cgs * Constants.cgs2SI_u
+        # De-stagger and scale velocity
+        ux = code2cgs_u * br_xup(px_code, pbc_x) ./ ρ_code
+        uy = code2cgs_u * br_yup(py_code, pbc_y) ./ ρ_code
+        uz = code2cgs_u * br_zup(pz_code, pbc_z) ./ ρ_code
 
         # De-stagger and scale magnetic field
-        # bx_SI = bx_cgs * Constants.cgs2SI_b
-        # by_SI = by_cgs * Constants.cgs2SI_b
-        # bz_SI = bz_cgs * Constants.cgs2SI_b
-        # Only scale magnetic field
-        bx_SI = code2cgs_B * Constants.cgs2SI_b * bx
-        by_SI = code2cgs_B * Constants.cgs2SI_b * by
-        bz_SI = code2cgs_B * Constants.cgs2SI_b * bz
+        bx = code2cgs_b * br_xup(bx_code, pbc_x)
+        by = code2cgs_b * br_xup(by_code, pbc_y)
+        bz = code2cgs_b * br_xup(bz_code, pbc_z)
         
+        # Scale axes
+        x = code2cgs_l * br_mesh.x
+        y = code2cgs_l * br_mesh.y
+        z = code2cgs_l * br_mesh.z
+
+        if SI_units
+            ux *= Constants.cgs2SI_u
+            uy *= Constants.cgs2SI_u
+            uz *= Constants.cgs2SI_u
+            bx *= Constants.cgs2SI_b
+            by *= Constants.cgs2SI_b
+            bz *= Constants.cgs2SI_b
+            x  *= Constants.cgs2SI_l
+            y  *= Constants.cgs2SI_l
+            z  *= Constants.cgs2SI_l
+        end
+
+        dx = diff(x)
+        dy = diff(y)
+        dz = diff(z)
+
+        domain = [x[1] x[end]
+                  y[1] y[end]
+                  z[1] z[end]]
+
         #-----------------------------------------------------------------------
         # Compute the electric field and current density
-        eField  = zeros(wp_snap, 3, meshsize...)
         calcEfield = true
         resistiveMHD = true
 
         if (aux_avail[8] > 0) & (aux_avail[9] > 0) & (aux_avail[10] > 0)
-            eField[1,:,:,:] = br_aux[:,:,:,aux_avail[8]]
-            eField[2,:,:,:] = br_aux[:,:,:,aux_avail[9]]
-            eField[3,:,:,:] = br_aux[:,:,:,aux_avail[10]]
+            ex = br_aux[:,:,:,aux_avail[8]]
+            ey = br_aux[:,:,:,aux_avail[9]]
+            ez = br_aux[:,:,:,aux_avail[10]]
             calcEfield = false
         elseif  (aux_avail[2] > 0) & (aux_avail[3] > 0) & (aux_avail[4] > 0)
             # Calculate η_total? or J using components?
-            println(string("Error: Computing E-field using η-components not ",
-                           "implemented"))
+            println(string("Error: Computing E-field using η-components is not",
+                           " implemented"))
             return
         elseif aux_avail[1] > 0
             η = br_aux[:,:,:,aux_avail[1]]
             # Do nothing
         else
-            println("Warning: No resisstance nor electric field in aux-vars.")
-            println("         Proceeds assuming ideal MHD.")
+            @warn string("No resisstance nor electric field in aux-vars.",
+                         "Proceeding assuming ideal MHD")
             resistiveMHD = false
         end
 
         # Bring magnetic field to cell centres
         bField  = zeros(wp_snap, 3, meshsize...)
-        bField[1,:,:,:] = br_xup(bx_SI, pbc_x)
-        bField[2,:,:,:] = br_xup(by_SI, pbc_y)
-        bField[3,:,:,:] = br_xup(bz_SI, pbc_z)
-
-#        # Temporary treatment of 2D meshes. Necessary for trilinear interpolations.
-#        # Idealy, you want a bilinear_xz interpolation function to avoid
-#        # interpolation in the third dimension.
-#        if length(br_mesh.y) == 1
-#            br_mesh.y = [br_mesh.y[1], br_mesh.y[1]]
-#        end
+        bField[1,:,:,:] = bx
+        bField[2,:,:,:] = by
+        bField[3,:,:,:] = bz
 
         if calcEfield
             # This allocation is not needed if cross() allows components and
             # not only the vectors.
             bulkvel = zeros(wp_snap, 3, meshsize...)
-            bulkvel[1,:,:,:] = ux_SI
-            bulkvel[2,:,:,:] = uy_SI
-            bulkvel[3,:,:,:] = uz_SI
+            bulkvel[1,:,:,:] = ux
+            bulkvel[2,:,:,:] = uy
+            bulkvel[3,:,:,:] = uz
             if resistiveMHD
                 # Calculate current density
                 if (aux_avail[5] > 0) & (aux_avail[6] > 0) & (aux_avail[7] > 0)
@@ -304,7 +311,7 @@ struct Mesh
                 elseif aux_avail[1] > 0
                     # Calculate J using the curl of the magnetic field.
                     # Use magnetic field on cell faces and upwind scheme
-                    J = Schemes.curl(bx_SI, by_SI, bz_SI,
+                    J = Schemes.curl(bx, by, bz,
                                      br_mesh.x, br_mesh.y, br_mesh.z,
                                      Schemes.derivateUpwind
                                      )/Constants.μ_0
@@ -318,20 +325,32 @@ struct Mesh
             end
         end
 
+        # Scale electric field. No need to de-stagger. Should be cell centred
+        if SI_units
+            ex *= Constants.cgs2SI_e
+            ey *= Constants.cgs2SI_e
+            ez *= Constants.cgs2SI_e
+        end
+        eField  = zeros(wp_snap, 3, meshsize...)
+        eField[1,:,:,:] = code2cgs_e * ex
+        eField[2,:,:,:] = code2cgs_e * ey
+        eField[3,:,:,:] = code2cgs_e * ez
+
+
         #-----------------------------------------------------------------------
         # Define/compute other parameters/variables.
 
         ∇B, ∇b̂, ∇ExB = compute∇s(bField, eField,
-                                 br_mesh.x,
-                                 br_mesh.y,
-                                 br_mesh.z,
+                                 x,
+                                 y,
+                                 z,
                                  derivateUpwind,
                                  )
 
         #-------------------------------------------------------
 
         return new(bField, eField, ∇B, ∇b̂, ∇ExB,
-                   br_mesh.x, br_mesh.y, br_mesh.z,
+                   x, y, z,
                    domain, numdims)
     end # constructor Mesh
 

@@ -29,6 +29,7 @@ export specieTable # Maping specie to mass and charge
 export getpos
 export getvel
 export reset!      # Resets particle positions to zero (except initial position)
+export revive!     # Resets particle alive status to true
 export setinitpos! # Sets the initial position of particles
 export setinitvel! # Sets the initial velocity of particles
 export kineticenergy # Computes the non-rel. kinetic energy at all time steps
@@ -320,6 +321,11 @@ function reset!(particles::ParticleSoA)
 end #function reset!
 
 
+function revive!(tp::TraceParticle)
+    tp.alive .= true
+end # function revive!
+
+
 function setinitpos!(particles::ParticleSoA,
                      pos      ::Matrix{T} where {T<:Real})
     particles.pos[:, :, 1] .= pos
@@ -506,7 +512,7 @@ end # function getvperp
         intep::Function,
         )
 Calculates and returns μ for all particles at all time steps by
-interpolating to the particle positions. This is a post-processing procudureand
+interpolating to the particle positions. This is a post-processing procudure and
 is only accurate if the same interpolation method is used as in the simulation
 itself.
 """

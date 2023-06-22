@@ -19,8 +19,10 @@ using Random:           MersenneTwister
 using Constants:        k_B
 
 export randn
+export rand
 export initparticlesuniform
 export initparticlesmaxwellian
+export norm4
 
 
 #----------------#
@@ -124,37 +126,20 @@ function norm4(
     fx::Array{T} where {T<:Real},
     fy::Array{T} where {T<:Real},
     fz::Array{T} where {T<:Real},
-    axis ::Integer=1
     ;
-    wfp  ::DataType=typeof(field[1])
+    wfp  ::DataType=typeof(fx[1])
                )
-    if axis == 1
-        dims = size(fx[:,:,:])
-        fieldstrength = zeros(wfp, dims)
-        for i = 1:dims[1]
-            for j = 1:dims[2]
-                for k = 1:dims[3]
-                    fieldstrength[i,j,k] = √(fx[i,j,k]^2 + 
-                                             fy[i,j,k]^2 +
-                                             fz[i,j,k]^2)
-                end # loop k
-            end # look j
-        end # loop i
-    elseif axis == 4
-        dims = size(fx[:,:,:])
-        fieldstrength = zeros(wfp, dims)
-        for i = 1:dims[1]
-            for j = 1:dims[2]
-                for k = 1:dims[3]
-                    fieldstrength[i,j,k] = √(fx[i,j,k,1]^2 + 
-                                             fy[i,j,k,2]^2 +
-                                             fz[i,j,k,3]^2)
-                end # loop k
-            end # look j
-        end # loop i
-    else
-        println("Error: Yours axes are wierd...")
-    end # if
+    dims = size(fx[:,:,:])
+    fieldstrength = zeros(wfp, dims)
+    for i = 1:dims[1]
+        for j = 1:dims[2]
+            for k = 1:dims[3]
+                fieldstrength[i,j,k] = √(fx[i,j,k]^2 + 
+                    fy[i,j,k]^2 +
+                    fz[i,j,k]^2)
+            end # loop k
+        end # look j
+    end # loop i
     return fieldstrength
 end # function norm4
 

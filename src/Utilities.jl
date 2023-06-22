@@ -236,7 +236,7 @@ function Base.rand(
     b   ::Real,
     dims::Tuple{Vararg{Int}}
     )
-    return a .+ rand(dims) .* (b - a)
+    return a .+ rand(dims...) .* (b - a)
 end # function rand
 #|
 function Base.rand(
@@ -244,7 +244,7 @@ function Base.rand(
     b   ::Real,
     dims...
     )
-    return a .+ rand(dims) .* (b - a)
+    return a .+ rand(dims...) .* (b - a)
 end # function rand
 #|
 function Base.rand(
@@ -294,7 +294,7 @@ function rejectionsampling(
     rejected = 0
     while accepted < numsamples
         pos     = rand(domain)
-        yguess  = rand(0.0, maxvalue)
+        yguess  = rand(0.0, maxvalue, 1)
         ytarget = target(pos)[1] # Target should return a single float, but in
         # case this float is in a 1-element Vector we specify the first index.
         if yguess < ytarget

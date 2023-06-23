@@ -367,7 +367,7 @@ function push!(
         if tp.alive[j]
             pos = tp.R[:,j,time]
             vel = tp.vparal[j,time]
-            pos, vel = solver(
+            nextpos, nextvel = solver(
                 pos,
                 vel,
                 tp.μ[j],
@@ -378,8 +378,13 @@ function push!(
                 scheme,
             )
             checkboundary!(pos, tp.alive, j, periodicBC, mesh.domain, time)
-            tp.R[:,j,time+1] = pos
-            tp.vparal[j,time+1] = vel
+            if tp.alive[j]
+                tp.R[:,j,time+1] .= nextpos
+                tp.vparal[j,time+1] .= nextvel
+            else
+                tp.R[:,j,time+1:end] .= pos
+                tp.vparal[j,time+1:end] .= vel
+            end
         end
     end # loop over particles
 end # function push!
@@ -398,7 +403,7 @@ function push!(
         if tp.alive[j]
             pos = tp.pos[:,j,time]
             vel = tp.vel[:,j,time]
-            pos, vel = solver(
+            nextpos, nextvel = solver(
                 pos,
                 vel,
                 tp.species[j],
@@ -407,9 +412,14 @@ function push!(
                 interp,
                 scheme,
             )
-            checkboundary!(pos, tp.alive, j, periodicBC, mesh.domain, time)
-            tp.pos[:,j,time+1] = pos
-            tp.vel[:,j,time+1] = vel
+            checkboundary!(nextpos, tp.alive, j, periodicBC, mesh.domain, time)
+            if tp.alive[j]
+                tp.pos[:,j,time+1] .= nextpos
+                tp.vel[:,j,time+1] .= nextvel
+            else
+                tp.pos[:,j,time+1:end] .= pos
+                tp.vel[:,j,time+1:end] .= vel
+            end
         end
     end # loop over particles
 end # function push!
@@ -428,6 +438,7 @@ function checkboundary!(
                 pos[k] = domain[k, 2] + (pos[k] - domain[k, 1])
             else
                 alive[j] = false # kill particle
+                println("Stp $time: Particle $j killed at lower $k boundary")
                 break
             end
         elseif pos[k] > domain[k, 2]
@@ -435,6 +446,7 @@ function checkboundary!(
                 pos[k] = domain[k, 1] + (pos[k] - domain[k, 2])
             else
                 alive[j] = false # kill particle
+                println("Step $time: Particle $j killed at upper $k boundary")
                 break
             end # if particle alive
         end # if particle outside domain

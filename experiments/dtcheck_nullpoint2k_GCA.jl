@@ -7,12 +7,12 @@ params = Parameters(
     nsteps=Int64(1e6),
     npart=5,
     tp_expname="nullpoint2k_dtrun",
-    tp_expdir="/Users/eilifo/repos/tp/data/dtrun",
+    tp_expdir="/mn/stornext/u3/eilifo/code/repos/tp/data/dtrun/gca",
     solver="full-orbit",
     scheme="RK4",
     interp="bilinear_xz",
     br_expname="nullpoint2k",
-    br_expdir="/Users/eilifo/data/ohf/nullpoint2k",
+    br_expdir="/mn/stornext/u3/eilifo/data/ohf/nullpoint2k",
     br_isnap=700,
     wp_part=Float64,
     wp_snap=Float32,
@@ -28,7 +28,7 @@ params = Parameters(
 
 tf = 0.01
 ndt = 10
-dts = 10 .^ (LinRange(-7.33,-8,ndt))
+dts = 10 .^ (LinRange(-4,-10,ndt))
 stepslist = round.(Integer, tf ./ dts)
 
 exp = tp_init!(params)
@@ -40,7 +40,7 @@ for i = 1:ndt
     tp_reinit_particles!(exp)
 
     # Run experiment
-    tp_run!(exp)
+    @time tp_run!(exp)
 
     tp_savetp(exp,
               string(params.tp_expdir, "/",

@@ -758,8 +758,8 @@ function tp_loadtp(
     numdims = 3
     println("tp.jl: Loading particles...")
     f = open(filename)
-    pos = zeros(params.wp_part, numdims, params.npart, params.nsteps)
-    vel = zeros(params.wp_part, numdims, params.npart, params.nsteps)
+    pos = zeros(params.wp_part, numdims, params.npart, params.nsteps+1)
+    vel = zeros(params.wp_part, numdims, params.npart, params.nsteps+1)
     pos[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))
     pos[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))
     pos[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))

@@ -13,6 +13,7 @@ module TraceParticles
 
 using Mmap
 using LinearAlgebra
+using Printf
 
 using Bifrost
 
@@ -37,6 +38,7 @@ export tp_savemesh
 export tp_savebg
 export tp_load
 export tp_loadtp
+export tp_loadtp!
 export tp_loadmesh
 export tp_loadbg
 # Run functions
@@ -754,24 +756,36 @@ function tp_loadtp(
     filename::String
     )
     numdims = 3
+    println("tp.jl: Loading particles...")
     f = open(filename)
     pos = zeros(params.wp_part, numdims, params.npart, params.nsteps)
     vel = zeros(params.wp_part, numdims, params.npart, params.nsteps)
-    pos[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    pos[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    pos[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    vel[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    vel[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
-    vel[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps))
+    pos[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))
+    pos[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))
+    pos[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))
+    vel[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))
+    vel[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))
+    vel[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))
     close(f)
     return pos, vel
 end
 
 
+function tp_loadtp!(
+    exp::Experiment,
+    filename::String
+    )
+    pos, vel = tp_loadtp(exp.params, filename)
+    exp.patch.tp.pos = pos
+    exp.patch.tp.pos = vel
+end
+    
+    
 function tp_loadmesh(
     params::Parameters,
     filename::String
     )
+    println("tp.jl: Loading mesh...")
     f = open(filename)
     x = mmap(f, Vector{params.wp_snap}, params.nx)
     y = mmap(f, Vector{params.wp_snap}, params.ny)
@@ -791,6 +805,7 @@ function tp_loadbg(
     ∇B = zeros(params.wp_snap, 3, meshsize...)
     ∇b̂ = zeros(params.wp_snap, 3, 3, meshsize...)
     ∇ExB = zeros(params.wp_snap, 3, 3, meshsize...)
+    println("tp.jl: Loading fields...")
     f = open(filename)
     for i = 1:3
         bField[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
@@ -825,10 +840,10 @@ function tp_run!(
     )
     statement = string("tp.jl: Running simulation:\n",
                        "\tnpart:  $(exp.params.npart)\n",
-                       "\tnsteps: $(exp.params.nsteps)\n",
+                       "\tnsteps: $(@sprintf("%.2e", exp.params.nsteps))\n",
                        "\tdt:     $(exp.params.dt)\n",
                        "\tNumber of iterations: ",
-                       "$(exp.params.npart*exp.params.nsteps)"
+                       "$(@sprintf("%.2e",exp.params.npart*exp.params.nsteps))"
                        )
     println(statement)
     run!(exp.patch)

@@ -307,7 +307,8 @@ function tp_createmesh!(
     # Construct mesh
     #---------------------------------------------------------------------------
     if params.bg_input == "br"
-        mesh = Mesh(params.br_expname, params.br_expdir, params.br_isnap)
+        mesh = Mesh(params.br_expname, params.br_expdir, params.br_isnap;
+                    wfp=params.wp_snap)
         params.nx = length(mesh.xCoords)
         params.ny = length(mesh.yCoords)
         params.nz = length(mesh.zCoords)

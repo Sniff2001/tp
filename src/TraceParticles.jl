@@ -647,15 +647,9 @@ function tp_savetp(
     exp::Experiment,
     filename::String,
     )
-    # IMPROVEMENT: This method takes a up a lot of memory. Defining a
-    # getArrayForSaving() function in the Particles module could be better.
     f = open(filename, "w+")
-    write(f, exp.patch.tp.pos[1,:,:])
-    write(f, exp.patch.tp.pos[2,:,:])
-    write(f, exp.patch.tp.pos[3,:,:])
-    write(f, exp.patch.tp.vel[1,:,:])
-    write(f, exp.patch.tp.vel[2,:,:])
-    write(f, exp.patch.tp.vel[3,:,:])
+    write(f, exp.patch.tp.pos)
+    write(f, exp.patch.tp.vel)
     close(f)
     println("tp.jl: Wrote $filename")
 end # tp_savetp
@@ -666,11 +660,14 @@ function tp_savemesh(
     filename::String,
     )
     f = open(filename, "w+")
-    write(f, [exp.patch.mesh.xCoords[:];
-              exp.patch.mesh.yCoords[:];
-              exp.patch.mesh.zCoords[:];
-              ]
-          )
+    write(f, exp.patch.mesh.xCoords)
+    write(f, exp.patch.mesh.yCoords)
+    write(f, exp.patch.mesh.zCoords)
+   # write(f, [exp.patch.mesh.xCoords[:];
+   #           exp.patch.mesh.yCoords[:];
+   #           exp.patch.mesh.zCoords[:];
+   #           ]
+   #       )
     close(f)
     println("tp.jl: Wrote $filename")
 end # function tp_savemesh
@@ -681,25 +678,11 @@ function tp_savebg(
     filename::String,
     )
     f = open(filename, "w+")
-    write(f, exp.patch.mesh.bField[1,:,:,:])
-    write(f, exp.patch.mesh.bField[2,:,:,:])
-    write(f, exp.patch.mesh.bField[3,:,:,:])
-    write(f, exp.patch.mesh.eField[1,:,:,:])
-    write(f, exp.patch.mesh.eField[2,:,:,:])
-    write(f, exp.patch.mesh.eField[3,:,:,:])
-    write(f, exp.patch.mesh.∇B[1,:,:,:])
-    write(f, exp.patch.mesh.∇B[2,:,:,:])
-    write(f, exp.patch.mesh.∇B[3,:,:,:])
-    for i = 1:3
-        for j = 1:3
-            write(f, exp.patch.mesh.∇b̂[i,j,:,:,:])
-        end
-    end
-    for i = 1:3
-        for j = 1:3
-            write(f, exp.patch.mesh.∇ExB[i,j,:,:,:])
-        end
-    end
+    write(f, exp.patch.mesh.bField)
+    write(f, exp.patch.mesh.eField)
+    write(f, exp.patch.mesh.∇B)
+    write(f, exp.patch.mesh.∇b̂)
+    write(f, exp.patch.mesh.∇ExB)
     close(f)
     println("tp.jl: Wrote $filename")
 end # function tp_savebg

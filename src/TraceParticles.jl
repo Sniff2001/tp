@@ -740,17 +740,15 @@ function tp_loadtp(
     filename::String
     )
     numdims = 3
+    pos = Array{params.wp_part}(undef, numdims, params.npart, params.nsteps+1)
+    vel = Array{params.wp_part}(undef, numdims, params.npart, params.nsteps+1)
+    #
     println("tp.jl: Loading particles...")
     f = open(filename)
-    pos = zeros(params.wp_part, numdims, params.npart, params.nsteps+1)
-    vel = zeros(params.wp_part, numdims, params.npart, params.nsteps+1)
-    pos[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))
-    pos[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))
-    pos[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))
-    vel[1,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))
-    vel[2,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))
-    vel[3,:,:] = mmap(f, Matrix{params.wp_part}, (params.npart, params.nsteps+1))
+    read!(f, pos)
+    read!(f, vel)
     close(f)
+    #
     return pos, vel
 end
 
@@ -760,8 +758,8 @@ function tp_loadtp!(
     filename::String
     )
     pos, vel = tp_loadtp(exp.params, filename)
-    exp.patch.tp.pos = pos
-    exp.patch.tp.pos = vel
+    exp.patch.tp.pos .= pos
+    exp.patch.tp.pos .= vel
 end
     
     
@@ -769,12 +767,17 @@ function tp_loadmesh(
     params::Parameters,
     filename::String
     )
+    x = Vector{params.wp_snap}(undef, params.nx)
+    y = Vector{params.wp_snap}(undef, params.ny)
+    z = Vector{params.wp_snap}(undef, params.nz)
+    #
     println("tp.jl: Loading mesh...")
     f = open(filename)
-    x = mmap(f, Vector{params.wp_snap}, params.nx)
-    y = mmap(f, Vector{params.wp_snap}, params.ny)
-    z = mmap(f, Vector{params.wp_snap}, params.nz)
+    read!(f, x)
+    read!(f, y)
+    read!(f, z)
     close(f)
+    #
     return x, y, z
 end
     
@@ -789,28 +792,16 @@ function tp_loadbg(
     ∇B = zeros(params.wp_snap, 3, meshsize...)
     ∇b̂ = zeros(params.wp_snap, 3, 3, meshsize...)
     ∇ExB = zeros(params.wp_snap, 3, 3, meshsize...)
+    #
     println("tp.jl: Loading fields...")
     f = open(filename)
-    for i = 1:3
-        bField[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-    end
-    for i = 1:3
-        eField[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-    end
-    for i = 1:3
-        ∇B[i,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-    end
-    for i = 1:3
-        for j = 1:3
-            ∇b̂[i,j,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-        end
-    end
-    for i = 1:3
-        for j = 1:3
-            ∇ExB[i,j,:,:,:] = mmap(f, Array{params.wp_snap, 3}, meshsize)
-        end
-    end
+    read!(f, bField)
+    read!(f, eField)
+    read!(f, ∇B)
+    read!(f, ∇b̂)
+    read!(f, ∇ExB)
     close(f)
+    #
     return bField, eField, ∇B, ∇b̂, ∇ExB
 end
 

@@ -141,7 +141,8 @@ struct Mesh
         expdir ::String,
         snap   ::Integer,
         ;
-        SI_units::Bool=true
+        SI_units::Bool=true,
+        wfp      ::DataType=Float32 # Working float precision
         )
 
         numdims = 3
@@ -194,7 +195,6 @@ struct Mesh
         #-----------------------------------------------------------------------
         # Allocate memory for simple variables
         meshsize = (br_mesh.mx, br_mesh.my, br_mesh.mz)
-        wp_snap = Float32
 
         # Density
         ρ_code  = br_snap[:,:,:,1]
@@ -223,9 +223,9 @@ struct Mesh
         # params["u_b"] scales magnetic field from model/code-units to CGS units. 
         # cgs2SI_u scales velocity from CGS-units to SI-units
         # cgs2SI_b scales magnetic field from CGS-units to SI-units
-        code2cgs_u = wp_snap(br_params["u_u"])
-        code2cgs_b = wp_snap(br_params["u_B"])
-        code2cgs_l = wp_snap(br_params["u_l"])
+        code2cgs_u = wfp(br_params["u_u"])
+        code2cgs_b = wfp(br_params["u_B"])
+        code2cgs_l = wfp(br_params["u_l"])
         code2cgs_e = code2cgs_u * code2cgs_b
 
         # De-stagger and scale velocity
@@ -244,15 +244,15 @@ struct Mesh
         z = code2cgs_l * br_mesh.z
 
         if SI_units
-            ux *= Constants.cgs2SI_u
-            uy *= Constants.cgs2SI_u
-            uz *= Constants.cgs2SI_u
-            bx *= Constants.cgs2SI_b
-            by *= Constants.cgs2SI_b
-            bz *= Constants.cgs2SI_b
-            x  *= Constants.cgs2SI_l
-            y  *= Constants.cgs2SI_l
-            z  *= Constants.cgs2SI_l
+            ux *= wfp(Constants.cgs2SI_u)
+            uy *= wfp(Constants.cgs2SI_u)
+            uz *= wfp(Constants.cgs2SI_u)
+            bx *= wfp(Constants.cgs2SI_b)
+            by *= wfp(Constants.cgs2SI_b)
+            bz *= wfp(Constants.cgs2SI_b)
+            x  *= wfp(Constants.cgs2SI_l)
+            y  *= wfp(Constants.cgs2SI_l)
+            z  *= wfp(Constants.cgs2SI_l)
         end
 
         dx = diff(x)
@@ -288,7 +288,7 @@ struct Mesh
         end
 
         # Bring magnetic field to cell centres
-        bField  = zeros(wp_snap, 3, meshsize...)
+        bField  = zeros(wfp, 3, meshsize...)
         bField[1,:,:,:] = bx
         bField[2,:,:,:] = by
         bField[3,:,:,:] = bz
@@ -296,7 +296,7 @@ struct Mesh
         if calcEfield
             # This allocation is not needed if cross() allows components and
             # not only the vectors.
-            bulkvel = zeros(wp_snap, 3, meshsize...)
+            bulkvel = zeros(wfp, 3, meshsize...)
             bulkvel[1,:,:,:] = ux
             bulkvel[2,:,:,:] = uy
             bulkvel[3,:,:,:] = uz
@@ -304,7 +304,7 @@ struct Mesh
                 # Calculate current density
                 if (aux_avail[5] > 0) & (aux_avail[6] > 0) & (aux_avail[7] > 0)
                     # Current density available in aux-variables
-                    J = zeros(wp_snap, 3, meshsize...)
+                    J = zeros(wfp, 3, meshsize...)
                     J[1,:,:,:] = br_aux[:,:,:,aux_avail[5]]
                     J[2,:,:,:] = br_aux[:,:,:,aux_avail[6]]
                     J[3,:,:,:] = br_aux[:,:,:,aux_avail[7]]
@@ -331,7 +331,7 @@ struct Mesh
             ey *= Constants.cgs2SI_e
             ez *= Constants.cgs2SI_e
         end
-        eField  = zeros(wp_snap, 3, meshsize...)
+        eField  = zeros(wfp, 3, meshsize...)
         eField[1,:,:,:] = code2cgs_e * ex
         eField[2,:,:,:] = code2cgs_e * ey
         eField[3,:,:,:] = code2cgs_e * ez

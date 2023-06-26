@@ -380,7 +380,7 @@ function push!(
             checkboundary!(pos, tp.alive, j, periodicBC, mesh.domain, time)
             if tp.alive[j]
                 tp.R[:,j,time+1] .= nextpos
-                tp.vparal[j,time+1] .= nextvel
+                tp.vparal[j,time+1] = nextvel
             else
                 tp.R[:,j,time+1:end] .= pos
                 tp.vparal[j,time+1:end] .= vel

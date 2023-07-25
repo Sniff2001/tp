@@ -454,8 +454,9 @@ function tp_createparticles!(
                                     params.velxbounds,
                                     params.velybounds,
                                     params.velzbounds,
-                                    params.wp_part,
-                                    params.seed
+                                    params.wp_part
+                                    ;
+                                    seed=params.seed
                                     )
     elseif params.vel_distr == "point"
         vel = ones(params.wp_part, numdims, params.npart)

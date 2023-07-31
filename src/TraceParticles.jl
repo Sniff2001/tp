@@ -173,7 +173,7 @@ mutable struct Parameters
         velybounds=zeros(wp_part, 2),
         velzbounds=zeros(wp_part, 2),
         T         =nothing,
-        seed      =wp_part(0),
+        seed      =0,
         # Periodic boundary conditions
         pbc::Tuple{Bool, Bool, Bool}=(false, false, false),
         # "Private" parameters
@@ -363,7 +363,8 @@ function tp_createparticles!(
                                     params.posxbounds,
                                     params.posybounds,
                                     params.poszbounds,
-                                    params.wp_part,
+                                    params.wp_part
+                                    ;
                                     params.seed
                                     )
     elseif params.pos_distr == "point"
@@ -426,7 +427,7 @@ function tp_createparticles!(
                 # Expectance value of particle velocity components is zero
                 μ = 0.0
                 # Draw velocity components from normal-distribution
-                vel[:,i] = randn(μ, σ, (numdims))
+                vel[:,i] = randn(μ, σ, (numdims); seed=params.seed+i)
             end
         else
             error(string("\"mb\" velocity distribution only available with ",
@@ -446,7 +447,7 @@ function tp_createparticles!(
             # Expectance value of particle velocity components is zero
             μ = 0.0
             # Draw velocity components from normal-distribution
-            vel[:,i] = randn(μ, σ, (numdims))
+            vel[:,i] = randn(μ, σ, (numdims); seed=params.seed+i)
         end
     elseif params.vel_distr == "uniform"
         vel = Utilities.inituniform(params.npart,

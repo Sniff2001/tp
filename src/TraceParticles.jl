@@ -25,6 +25,8 @@ using Schemes
 using Interpolations_tp
 using Utilities
 using Constants
+using Interpolations
+using Interpolations_tp: trilinear_ip, quadratic_bspline, cubic_bspline
 
 export Parameters
 export Experiment
@@ -58,6 +60,9 @@ methodmap = Dict(
     "trilinear"      => Interpolations_tp.trilinear,
     "trilinear-GCA"  => Interpolations_tp.trilinearGCA,
     "bilinear_xz"    => Interpolations_tp.bilinear_xz,
+    "trilinear-ip"   => (B, E, x, y, z, pbc) -> Interpolations_tp.trilinear_ip(B, E, x, y, z, pbc),
+    "quadratic-bspline-ip"   => (B, E, x, y, z, pbc) -> Interpolations_tp.quadratic_bspline(B, E, x, y, z, pbc),
+    "cubic-bspline-ip"   => (B, E, x, y, z, pbc) -> Interpolations_tp.cubic_bspline(B, E, x, y, z, pbc),
 )
 
 #--------------------#
@@ -526,16 +531,29 @@ function tp_createpatch(
     #---------------------------------------------------------------------------
     # Construct Patch
     #---------------------------------------------------------------------------
-    patch = Patch(mesh,
-                  particles,
-                  methodmap[params.solver],
-                  methodmap[params.scheme],
-                  methodmap[params.interp],
-                  params.dt,
-                  params.nsteps,
-                  params.npart,
-                  params.pbc
-                  )
+    if params.interp == "trilinear-ip" || params.interp == "quadratic-bspline-ip" || params.interp == "cubic-bspline-ip"
+        patch = Patch(mesh,
+                    particles,
+                    methodmap[params.solver],
+                    methodmap[params.scheme],
+                    methodmap[params.interp](mesh.bField, mesh.eField, params.x, params.y, params.z, params.pbc),
+                    params.dt,
+                    params.nsteps,
+                    params.npart,
+                    params.pbc
+                    )
+    else
+        patch = Patch(mesh,
+                    particles,
+                    methodmap[params.solver],
+                    methodmap[params.scheme],
+                    methodmap[params.interp],
+                    params.dt,
+                    params.nsteps,
+                    params.npart,
+                    params.pbc
+                    )
+    end
     return patch
 end
 

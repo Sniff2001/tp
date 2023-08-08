@@ -216,7 +216,7 @@ function interpolatedFieldError(analytic_field, interpolated_field, particles, i
                         y = particles[1, 1, 2, i, t]
                         z = particles[1, 1, 3, i, t]
                         interpolated_field_array[t] = Utilities.norm(interpolated_field(x,y,z))
-                        println("$label  $(round(100*t/length(particles[1,1,1,1,:]), 2))%")
+                        println("$label  $(round(100*t/length(particles[1,1,1,1,:]), digits=2))%")
                         analytic_field_array[t] = Utilities.norm(analytic_field(x,y,z))
                 end
                 plot_mode(collect(1:(length(particles[1,1,1,1,:]))), 100 .* abs.(interpolated_field_array ./ analytic_field_array .- 1), label=label)

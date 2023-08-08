@@ -44,7 +44,7 @@ bz     = 0.0             # z-component
 σ  = (σx, σy)
 time = 2.9
 
-function plasmoidParameters(n, dt)
+function plasmoidParameters(n, dt; interpolator="trilinear")
         # Creating the vector potential also gives the axes of the experiment
         domainaxes, gridsizes, A = Utilities.normal3Donlyz(xi0, xif, n, μ, σ)
         # Derive the magnetic field from the curl of the vector-potential
@@ -75,11 +75,11 @@ function plasmoidParameters(n, dt)
         dt=dt,
         nsteps=round(Int, time/dt),
         npart=4,
-        tp_expname="plasmoid$(n[1])",
+        tp_expname="plasmoid$(n[1])U$(round(dt, digits=10))",
         tp_expdir="C:/Users/ixyva/data/test",
         solver="full-orbit",
         scheme="RK4",
-        interp="trilinear",
+        interp=interpolator,
         wp_part=Float32,
         wp_snap=Float32,
         pos_distr="point",
@@ -109,18 +109,16 @@ function plasmoidParameters(n, dt)
         return params
 end
 
-println(abspath(PROGRAM_FILE) == @__FILE__)
-
 if abspath(PROGRAM_FILE) == @__FILE__
         using TPplots
         import PyPlot
         const plt = PyPlot
         plt.pygui(true)
 
-        n = (100, 100, 2)
-        dt = 0.001
+        n = (1000, 1000, 2)
+        dt = 1e-3
 
-        params = plasmoidParameters(n, dt)
+        params = plasmoidParameters(n, dt, "trilinear-ip")
         # Initialise experiment
         exp = tp_init!(params)
         # Run experiment

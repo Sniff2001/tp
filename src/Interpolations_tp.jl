@@ -341,6 +341,7 @@ function bilinearsum(
     return A
 end # bilinearsum
 
+# These might be modified to look cleaner
 function trilinear_ip(
     tensorfield1 ::AbstractArray{T} where {T<:Real},
     tensorfield2 ::AbstractArray{T} where {T<:Real},
@@ -385,7 +386,7 @@ function trilinear_ip(
     return (tensorfield1_interp, tensorfield2_interp)
 end # trilinear_ip
 
-# currently i doubt bsplines work, WIP
+
 function quadratic_bspline(
     tensorfield1 ::AbstractArray{T} where {T<:Real},
     tensorfield2 ::AbstractArray{T} where {T<:Real},

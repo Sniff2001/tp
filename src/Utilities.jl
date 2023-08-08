@@ -17,6 +17,9 @@ using LinearAlgebra:    norm
 using Random:           MersenneTwister
 # Internal libraries
 using Constants:        k_B
+# External libraries
+using SymPy
+using CalculusWithJulia
 
 export randn
 export rand
@@ -443,6 +446,22 @@ function normal3Donlyz(
     return (xx, yy, zz), (dx, dy, dz), A
 end # function normal3donlyz
 
+function normal3Donlyz(
+    (μx, μy)    ::Tuple{Real, Real},
+    (σx, σy)    ::Tuple{Real, Real},
+    amplitude   ::Real=1.0
+    )
+
+    @syms x::real y::real z::real
+
+    gaussian_x = 1/(√(2π)*σx)*exp(-0.5*(x-μx)^2/σx^2)
+    gaussian_y = 1/(√(2π)*σy)*exp(-0.5*(y-μy)^2/σy^2)
+    
+    magnetic_potential = amplitude*[0, 0, gaussian_x*gaussian_y]
+    magnetic_field = curl(magnetic_potential, [x,y,z])
+    #magnetic_field = ∇ × magnetic_potential(x,y,z)
+    return lambdify(magnetic_field), lambdify(magnetic_potential)
+end
 
 function fadeevEquilibrium(
     (x0, y0, z0)::Tuple{Real, Real, Real},

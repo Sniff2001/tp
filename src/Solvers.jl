@@ -73,6 +73,30 @@ function fullOrbit(pos        ::Vector{T} where {T<:Real},
     return statevectorNext[1:3], statevectorNext[4:6]
 end # function fullOrbit
 
+function fullOrbit(
+    pos         ::Vector{T} where {T<:Real},
+    v           ::Vector{T} where {T<:Real}, # velocity
+    specie      ::Integer,
+    mesh        ::Mesh,
+    dt          ::Real,
+    interpolator::Tuple,
+    scheme      ::Function
+    )
+# Extract particle mass and charge
+m = specieTable[specie, 1]
+q = specieTable[specie, 2]
+B = interpolator[1]
+E = interpolator[2]
+#
+statevector = [pos; v]
+statevectorNext = scheme(statevector,
+              dt, 
+              eomLorentzforce,
+              B, E, q, m
+              )
+return statevectorNext[1:3], statevectorNext[4:6]
+end # function fullOrbit
+
 
 function eomLorentzforce(
     s::Vector{T} where {T<:Real}, # The state vector
@@ -84,6 +108,21 @@ function eomLorentzforce(
     x = s[1:3] # The position vector
     v = s[4:6] # The velocity vector
     dvdt = q/m * (E + v × B) 
+    dxdt = v
+    dsdt = [dxdt; dvdt]
+    return dsdt
+end # function eomLorentzforce
+#|
+function eomLorentzforce(
+    s::Vector{T} where {T<:Real}, # The state vector
+    B::Function, # The magnetic field
+    E::Function, # The electric field
+    q::Real,         # Charge
+    m::Real          # Mass
+    )
+    x = s[1:3] # The position vector
+    v = s[4:6] # The velocity vector
+    dvdt = q/m * (E(x[1], x[2], x[3]) + v × B(x[1], x[2], x[3])) 
     dxdt = v
     dsdt = [dxdt; dvdt]
     return dsdt

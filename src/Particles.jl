@@ -359,7 +359,7 @@ function push!(
     time  ::Integer,
     dt    ::Real,
     solver::Function,
-    interp::Function,
+    interp::Union{Function, Tuple},
     scheme::Function,
     periodicBC::Tuple{Bool, Bool, Bool},
     )
@@ -395,7 +395,7 @@ function push!(
     time  ::Integer,
     dt    ::Real,
     solver::Function,
-    interp::Function,
+    interp::Union{Function, Tuple},
     scheme::Function,
     periodicBC::Tuple{Bool, Bool, Bool},
     )

@@ -32,7 +32,7 @@ mutable struct Patch
     tp          ::TraceParticle # The trace particles
     solver      ::Function
     scheme      ::Function
-    interpolator::Function
+    interpolator::Union{Function, Tuple}
     dt          ::Real
     numSteps    ::Integer
     numParticles::Integer
@@ -44,7 +44,7 @@ mutable struct Patch
                    tp          ::TraceParticle, # The trace particles
                    solver      ::Function,
                    scheme      ::Function,
-                   interpolator::Function,
+                   interpolator::Union{Function, Tuple},
                    dt          ::Real,
                    numSteps    ::Integer,
                    numParticles::Integer
@@ -65,7 +65,7 @@ mutable struct Patch
                    tp          ::TraceParticle, # The trace particles
                    solver      ::Function,
                    scheme      ::Function,
-                   interpolator::Function,
+                   interpolator::Union{Function, Tuple},
                    dt          ::Real,
                    numSteps    ::Integer,
                    numParticles::Integer,
@@ -90,7 +90,7 @@ mutable struct Patch
         tp          ::TraceParticle, # The trace particles
         solver      ::Function,
         scheme      ::Function,
-        interpolator::Function,
+        interpolator::Union{Function, Tuple},
         dt          ::Real,
         numSteps    ::Integer,
         numParticles::Integer,

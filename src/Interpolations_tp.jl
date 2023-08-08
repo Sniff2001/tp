@@ -12,6 +12,7 @@
 module Interpolations_tp
 
 using Meshes
+using Interpolations
 
 export gridinterp
 export locateCell
@@ -339,6 +340,161 @@ function bilinearsum(
     A  = c0*A0 + c1*A1 + c2*A2 + c3*A3 
     return A
 end # bilinearsum
+
+function trilinear_ip(
+    tensorfield1 ::AbstractArray{T} where {T<:Real},
+    tensorfield2 ::AbstractArray{T} where {T<:Real},
+    xx          ::Vector{T} where {T<:Real},
+    yy          ::Vector{T} where {T<:Real},
+    zz          ::Vector{T} where {T<:Real},
+    pbc         ::Tuple{Bool, Bool, Bool}
+    )
+    tensorfield1_interp_x = interpolate((xx,yy,zz), tensorfield1[1,:,:,:], Gridded(Linear()))
+    tensorfield1_interp_y = interpolate((xx,yy,zz), tensorfield1[2,:,:,:], Gridded(Linear()))
+    tensorfield1_interp_z = interpolate((xx,yy,zz), tensorfield1[3,:,:,:], Gridded(Linear()))
+    tensorfield2_interp_x = interpolate((xx,yy,zz), tensorfield2[1,:,:,:], Gridded(Linear()))
+    tensorfield2_interp_y = interpolate((xx,yy,zz), tensorfield2[2,:,:,:], Gridded(Linear()))
+    tensorfield2_interp_z = interpolate((xx,yy,zz), tensorfield2[3,:,:,:], Gridded(Linear()))
+    
+    if pbc[1]
+        tensorfield1_interp_x = extrapolate(tensorfield1_interp_x, Periodic())
+        tensorfield2_interp_x = extrapolate(tensorfield2_interp_x, Periodic())
+    else
+        tensorfield1_interp_x = extrapolate(tensorfield1_interp_x, Flat())
+        tensorfield2_interp_x = extrapolate(tensorfield2_interp_x, Flat())
+    end
+
+    if pbc[2]
+        tensorfield1_interp_y = extrapolate(tensorfield1_interp_y, Periodic())
+        tensorfield2_interp_y = extrapolate(tensorfield2_interp_y, Periodic())
+    else
+        tensorfield1_interp_y = extrapolate(tensorfield1_interp_y, Flat())
+        tensorfield2_interp_y = extrapolate(tensorfield2_interp_y, Flat())
+    end
+
+    if pbc[3]
+        tensorfield1_interp_z = extrapolate(tensorfield1_interp_z, Periodic())
+        tensorfield2_interp_z = extrapolate(tensorfield2_interp_z, Periodic())
+    else
+        tensorfield1_interp_z = extrapolate(tensorfield1_interp_z, Flat())
+        tensorfield2_interp_z = extrapolate(tensorfield2_interp_z, Flat())
+    end
+
+    tensorfield1_interp = (x, y, z) -> [tensorfield1_interp_x(x,y,z), tensorfield1_interp_y(x,y,z), tensorfield1_interp_z(x,y,z)]
+    tensorfield2_interp = (x, y, z) -> [tensorfield2_interp_x(x,y,z), tensorfield2_interp_y(x,y,z), tensorfield2_interp_z(x,y,z)]
+    return (tensorfield1_interp, tensorfield2_interp)
+end # trilinear_ip
+
+# currently i doubt bsplines work, WIP
+function quadratic_bspline(
+    tensorfield1 ::AbstractArray{T} where {T<:Real},
+    tensorfield2 ::AbstractArray{T} where {T<:Real},
+    xx          ::Vector{T} where {T<:Real},
+    yy          ::Vector{T} where {T<:Real},
+    zz          ::Vector{T} where {T<:Real},
+    pbc         ::Tuple{Bool, Bool, Bool}
+    )
+    tensorfield1_interp_x = interpolate(tensorfield1[1,:,:,:], BSpline(Quadratic()))
+    tensorfield1_interp_y = interpolate(tensorfield1[2,:,:,:], BSpline(Quadratic()))
+    tensorfield1_interp_z = interpolate(tensorfield1[3,:,:,:], BSpline(Quadratic()))
+    tensorfield2_interp_x = interpolate(tensorfield2[1,:,:,:], BSpline(Quadratic()))
+    tensorfield2_interp_y = interpolate(tensorfield2[2,:,:,:], BSpline(Quadratic()))
+    tensorfield2_interp_z = interpolate(tensorfield2[3,:,:,:], BSpline(Quadratic()))
+
+    xa = LinRange(xx[1], xx[end], length(xx))
+    ya = LinRange(yy[1], yy[end], length(yy))
+    za = LinRange(zz[1], zz[end], length(zz))
+
+    tensorfield1_scaledinterp_x = scale(tensorfield1_interp_x, xa, ya, za)
+    tensorfield2_scaledinterp_x = scale(tensorfield2_interp_x, xa, ya, za)
+    tensorfield1_scaledinterp_y = scale(tensorfield1_interp_y, xa, ya, za)
+    tensorfield2_scaledinterp_y = scale(tensorfield2_interp_y, xa, ya, za)
+    tensorfield1_scaledinterp_z = scale(tensorfield1_interp_z, xa, ya, za)
+    tensorfield2_scaledinterp_z = scale(tensorfield2_interp_z, xa, ya, za)
+
+    if pbc[1]
+        tensorfield1_scaledinterp_x = extrapolate(tensorfield1_scaledinterp_x, Periodic())
+        tensorfield2_scaledinterp_x = extrapolate(tensorfield2_scaledinterp_x, Periodic())
+    else
+        tensorfield1_scaledinterp_x = extrapolate(tensorfield1_scaledinterp_x, Flat())
+        tensorfield2_scaledinterp_x = extrapolate(tensorfield2_scaledinterp_x, Flat())
+    end
+
+    if pbc[2]
+        tensorfield1_scaledinterp_y = extrapolate(tensorfield1_scaledinterp_y, Periodic())
+        tensorfield2_scaledinterp_y = extrapolate(tensorfield2_scaledinterp_y, Periodic())
+    else
+        tensorfield1_scaledinterp_y = extrapolate(tensorfield1_scaledinterp_y, Flat())
+        tensorfield2_scaledinterp_y = extrapolate(tensorfield2_scaledinterp_y, Flat())
+    end
+
+    if pbc[3]
+        tensorfield1_scaledinterp_z = extrapolate(tensorfield1_scaledinterp_z, Periodic())
+        tensorfield2_scaledinterp_z = extrapolate(tensorfield2_scaledinterp_z, Periodic())
+    else
+        tensorfield1_scaledinterp_z = extrapolate(tensorfield1_scaledinterp_z, Flat())
+        tensorfield2_scaledinterp_z = extrapolate(tensorfield2_scaledinterp_z, Flat())
+    end
+
+    tensorfield1_interp = (x, y, z) -> [tensorfield1_scaledinterp_x(x,y,z), tensorfield1_scaledinterp_y(x,y,z), tensorfield1_scaledinterp_z(x,y,z)]
+    tensorfield2_interp = (x, y, z) -> [tensorfield2_scaledinterp_x(x,y,z), tensorfield2_scaledinterp_y(x,y,z), tensorfield2_scaledinterp_z(x,y,z)]
+    return (tensorfield1_interp, tensorfield2_interp)
+end # quadratic_bspline
+
+function cubic_bspline(
+    tensorfield1 ::AbstractArray{T} where {T<:Real},
+    tensorfield2 ::AbstractArray{T} where {T<:Real},
+    xx          ::Vector{T} where {T<:Real},
+    yy          ::Vector{T} where {T<:Real},
+    zz          ::Vector{T} where {T<:Real},
+    pbc         ::Tuple{Bool, Bool, Bool}
+    )
+    tensorfield1_interp_x = interpolate(tensorfield1[1,:,:,:], BSpline(Cubic(Line(OnGrid()))))
+    tensorfield1_interp_y = interpolate(tensorfield1[2,:,:,:], BSpline(Cubic(Line(OnGrid()))))
+    tensorfield1_interp_z = interpolate(tensorfield1[3,:,:,:], BSpline(Cubic(Line(OnGrid()))))
+    tensorfield2_interp_x = interpolate(tensorfield2[1,:,:,:], BSpline(Cubic(Line(OnGrid()))))
+    tensorfield2_interp_y = interpolate(tensorfield2[2,:,:,:], BSpline(Cubic(Line(OnGrid()))))
+    tensorfield2_interp_z = interpolate(tensorfield2[3,:,:,:], BSpline(Cubic(Line(OnGrid()))))
+
+    xa = LinRange(xx[1], xx[end], length(xx))
+    ya = LinRange(yy[1], yy[end], length(yy))
+    za = LinRange(zz[1], zz[end], length(zz))
+
+    tensorfield1_scaledinterp_x = scale(tensorfield1_interp_x, xa, ya, za)
+    tensorfield2_scaledinterp_x = scale(tensorfield2_interp_x, xa, ya, za)
+    tensorfield1_scaledinterp_y = scale(tensorfield1_interp_y, xa, ya, za)
+    tensorfield2_scaledinterp_y = scale(tensorfield2_interp_y, xa, ya, za)
+    tensorfield1_scaledinterp_z = scale(tensorfield1_interp_z, xa, ya, za)
+    tensorfield2_scaledinterp_z = scale(tensorfield2_interp_z, xa, ya, za)
+
+    if pbc[1]
+        tensorfield1_scaledinterp_x = extrapolate(tensorfield1_scaledinterp_x, Periodic())
+        tensorfield2_scaledinterp_x = extrapolate(tensorfield2_scaledinterp_x, Periodic())
+    else
+        tensorfield1_scaledinterp_x = extrapolate(tensorfield1_scaledinterp_x, Flat())
+        tensorfield2_scaledinterp_x = extrapolate(tensorfield2_scaledinterp_x, Flat())
+    end
+
+    if pbc[2]
+        tensorfield1_scaledinterp_y = extrapolate(tensorfield1_scaledinterp_y, Periodic())
+        tensorfield2_scaledinterp_y = extrapolate(tensorfield2_scaledinterp_y, Periodic())
+    else
+        tensorfield1_scaledinterp_y = extrapolate(tensorfield1_scaledinterp_y, Flat())
+        tensorfield2_scaledinterp_y = extrapolate(tensorfield2_scaledinterp_y, Flat())
+    end
+
+    if pbc[3]
+        tensorfield1_scaledinterp_z = extrapolate(tensorfield1_scaledinterp_z, Periodic())
+        tensorfield2_scaledinterp_z = extrapolate(tensorfield2_scaledinterp_z, Periodic())
+    else
+        tensorfield1_scaledinterp_z = extrapolate(tensorfield1_scaledinterp_z, Flat())
+        tensorfield2_scaledinterp_z = extrapolate(tensorfield2_scaledinterp_z, Flat())
+    end
+
+    tensorfield1_interp = (x, y, z) -> [tensorfield1_scaledinterp_x(x,y,z), tensorfield1_scaledinterp_y(x,y,z), tensorfield1_scaledinterp_z(x,y,z)]
+    tensorfield2_interp = (x, y, z) -> [tensorfield2_scaledinterp_x(x,y,z), tensorfield2_scaledinterp_y(x,y,z), tensorfield2_scaledinterp_z(x,y,z)]
+    return (tensorfield1_interp, tensorfield2_interp)
+end # quadratic_bspline
 
 end # module Interpolations_tp
 
